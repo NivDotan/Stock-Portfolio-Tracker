@@ -227,110 +227,73 @@ class Window(QtWidgets.QMainWindow):
 
     def __init__(self): 
         super().__init__() 
-        #self.left = 100
-        #self.top = 100
-        #self.width = 1500
-        #self.height = 1500
+
         self.init_ui() 
 
     def init_ui(self):
-        #self.setGeometry(self.left, self.top, self.width, self.height)
-        #self.setStyleSheet("background-color: white;")
-        #self.stock_price()
-        
-
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
-
-        self.layout = QtWidgets.QGridLayout(self._main)
-        
-        #self.layout.addWidget(self.tableWidget, 0, 0)
-        #self.tableWidget.setSizeAdjustPolicy(self.tableWidget.AdjustToContents)
-
-        #policy = self.tableWidget.sizePolicy()
-        #policy.setHorizontalPolicy(policy.Maximum)
-        #self.tableWidget.setSizePolicy(policy)
-        
+        self.layout = QtWidgets.QGridLayout(self._main) 
         i=[0,1,2,3]
-        
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             graph =list(executor.map(self.Downloan_data, i))
-    
         list_of_cordinations = [[0,1],[1,1],[0,2],[1,2]]
         for Index in range(len(graph)):
             self.indexes(Index,graph[Index])
             self.layout.addWidget(self.fig, list_of_cordinations[Index][0], list_of_cordinations[Index][1])
         self.showMaximized()
-        
 
     #def stock_price(self):
     #    global tickers, len_ticker
     #    tickers = []
-    #    f = open('stock_watchlist.txt','r')
+    #    f = open('stock_watchlist.txt','w+')
+    #    print(f)
     #    for i in f:
-    #        
     #        tickers.append(i)
-    #    tickers = 
-    #    len_ticker = len(tickers)
-    #    stocks = []
-    #    tick_L = []
+    #    print(tickers)
+    #    with concurrent.futures.ThreadPoolExecutor() as executor:
+    #        stock_price_now =list(executor.map(stockprice_by_google, f))
+    #        for i in stock_price_now:
+    #            stockPrice = str(stock_price_now) + " $"
+    #            tickers.append(stockPrice)  
+    #    print(tickers)
+    #    self.createTable(tickers, tickers,3)
+
+    #def createTable(self, stocks, tickers, length):   
+    #    self.tableWidget = QtWidgets.QTableWidget(length,3)
+    #    self.line = QtWidgets.QLineEdit(self)
+    #    self.searchLabel = QtWidgets.QLabel(self)
+    #    #self.searchLabel.setText('Search:')
+    #    self.pybutton = QtWidgets.QPushButton('Search', self)
+    #    
+    #    self.pybutton.clicked.connect(self.NewWindow)
+    #    self.add = QtWidgets.QPushButton('Add New Stock', self)
+    #    self.add.clicked.connect(self.openGraph)
+    #    
+    #    x = 0
+    #    i = 0 
+
     #    for tick in tickers:
-    #        str_tick = str(tick)
-    #        stock_now = sq.Stock(str_tick)
-    #        stockPrice = str(stock_now.current_price) + " $"
-    #        stocks.append(stockPrice)   
-    #    self.createTable(stocks, tickers,len_ticker)
+    #        tick = tick.upper()
+    #        self.tableWidget.setItem(x,0, QtWidgets.QTableWidgetItem(tick))
+    #        x = x + 1
 
-    
-    def stock_price(self):
-        global tickers, len_ticker
-        tickers = []
-        f = open('stock_watchlist.txt','w+')
-        print(f)
-        for i in f:
-            tickers.append(i)
-        print(tickers)
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            stock_price_now =list(executor.map(stockprice_by_google, f))
-            for i in stock_price_now:
-                stockPrice = str(stock_price_now) + " $"
-                tickers.append(stockPrice)  
-        print(tickers)
-        self.createTable(tickers, tickers,3)
+    #    for stock in stocks:
+    #        self.tableWidget.setItem(i,1, QtWidgets.QTableWidgetItem(stock))
+    #        i = i + 1
 
-    def createTable(self, stocks, tickers, length):   
-        self.tableWidget = QtWidgets.QTableWidget(length,3)
-        self.line = QtWidgets.QLineEdit(self)
-        self.searchLabel = QtWidgets.QLabel(self)
-        #self.searchLabel.setText('Search:')
-        self.pybutton = QtWidgets.QPushButton('Search', self)
-        
-        self.pybutton.clicked.connect(self.NewWindow)
-        self.add = QtWidgets.QPushButton('Add New Stock', self)
-        self.add.clicked.connect(self.openGraph)
-        
-        x = 0
-        i = 0 
-
-        for tick in tickers:
-            tick = tick.upper()
-            self.tableWidget.setItem(x,0, QtWidgets.QTableWidgetItem(tick))
-            x = x + 1
-
-        for stock in stocks:
-            self.tableWidget.setItem(i,1, QtWidgets.QTableWidgetItem(stock))
-            i = i + 1
-
-        for j in range(0,3):
-            self.__AddButtons(None, None)
-            if j == 2:
-                j = j
-            else:
-                j = j + 1
+    #    for j in range(0,3):
+    #        self.__AddButtons(None, None)
+    #        if j == 2:
+    #            j = j
+    #        else:
+    #            j = j + 1
 
     def Downloan_data(self,num):
         try: # st art watching for errors
-            Indexes = ['^IXIC','^GSPC','^DJI','CL=F']
+            #Indexes = ['^IXIC','^GSPC','^DJI','CL=F']
+            Indexes = ['^IXIC']
             today = date.today()
             data = yf.download(Indexes[num], start="2020-01-01", end=str(today)) ### Change the Start Data
             data_prices = data['Close']
@@ -368,47 +331,48 @@ class Window(QtWidgets.QMainWindow):
         self.graph.grid()
        
 
-    def __AddButtons(self, order, Pos):
-        if order == 'One':
-            Pos = int(Pos)
-            self.new = QtWidgets.QPushButton("Learn More{}".format(""), self)
-            self.tableWidget.setCellWidget(Pos, 2, self.new)
-            #print(tickers[Pos])
-            self.new.clicked.connect(lambda ch, Pos=Pos: self.NewWindowTable(tickers[Pos])) 
-        else:
-            for i in range(3):
-                self.Btn = QtWidgets.QPushButton("Learn More{}".format(""), self)
-                self.tableWidget.setCellWidget(i, 2, self.Btn) 
-                #self.layout.addWidget(self.Name)           
-                self.Btn.clicked.connect(lambda ch, i=i: self.NewWindowTable(tickers[i]))
+    #def __AddButtons(self, order, Pos):
+    #    if order == 'One':
+    #        Pos = int(Pos)
+    #        self.new = QtWidgets.QPushButton("Learn More{}".format(""), self)
+    #        self.tableWidget.setCellWidget(Pos, 2, self.new)
+    #        #print(tickers[Pos])
+    #        self.new.clicked.connect(lambda ch, Pos=Pos: self.NewWindowTable(tickers[Pos])) 
+    #    else:
+    #        for i in range(3):
+    #            self.Btn = QtWidgets.QPushButton("Learn More{}".format(""), self)
+    #            self.tableWidget.setCellWidget(i, 2, self.Btn) 
+    #            #self.layout.addWidget(self.Name)           
+    #            self.Btn.clicked.connect(lambda ch, i=i: self.NewWindowTable(tickers[i]))
 
-    def AddNewStock(self):
-        New_stock = str(self.line.text())
-        print('New_stock', New_stock)
-        stock_now = sq.Stock(New_stock)
-        stockPrice = str(stock_now.current_price) + " $"
-        rowPosition = self.tableWidget.rowCount()
-        tickers.append(New_stock)
-        self.tableWidget.setColumnCount(3)
-        self.tableWidget.insertRow(rowPosition)
-        self.tableWidget.setItem(rowPosition , 0, QtWidgets.QTableWidgetItem(New_stock))
-        self.tableWidget.setItem(rowPosition , 1, QtWidgets.QTableWidgetItem(stockPrice))
-        self.tableWidget.setItem(rowPosition , 2, QtWidgets.QTableWidgetItem(self.__AddButtons('One', rowPosition)))
+    #def AddNewStock(self):
+    #    New_stock = str(self.line.text())
+    #    print('New_stock', New_stock)
+    #    stock_now = sq.Stock(New_stock)
+    #    stockPrice = str(stock_now.current_price) + " $"
+    #    rowPosition = self.tableWidget.rowCount()
+    #    tickers.append(New_stock)
+    #    self.tableWidget.setColumnCount(3)
+    #    self.tableWidget.insertRow(rowPosition)
+    #    self.tableWidget.setItem(rowPosition , 0, QtWidgets.QTableWidgetItem(New_stock))
+    #    self.tableWidget.setItem(rowPosition , 1, QtWidgets.QTableWidgetItem(stockPrice))
+    #    self.tableWidget.setItem(rowPosition , 2, QtWidgets.QTableWidgetItem(self.__AddButtons('One', rowPosition)))
         
 
-    def NewWindow(self):
-        global stock
-        stock = str(self.line.text())
-        self.w = Window2()
+    #def NewWindow(self):
+    #    global stock
+    #    stock = str(self.line.text())
+    #    self.w = Window2()
 
-    def NewWindowTable(self, x):
-        global stock
-        stock = x
-        print(stock)
-        self.w = Window2()
+    #def NewWindowTable(self, x):
+    #    global stock
+    #    stock = x
+    #    print(stock)
+    #    self.w = Window2()
 
    
 class OpenWin(QtWidgets.QMainWindow):
+
 
     def __init__(self): 
         super().__init__() 
@@ -475,8 +439,7 @@ class OpenWin(QtWidgets.QMainWindow):
                 temp.append(future.result())
         print(temp)
         self.createTable(temp,len(temp))
-       #1231234584 54 561 5614
-       #sad1a
+       
     def createTable(self, tickers, length):   
         self.tableWidget = QtWidgets.QTableWidget(length,3)
         self.tableWidget.setHorizontalHeaderLabels(("Ticker;Stock Price;Review").split(";"))
@@ -552,6 +515,7 @@ class OpenWin(QtWidgets.QMainWindow):
         stock = x
         print(stock)
         self.w = Window2()
+
 app = QtWidgets.QApplication(sys.argv)
 a_window = OpenWin()
 
