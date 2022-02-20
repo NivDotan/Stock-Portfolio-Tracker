@@ -1,0 +1,6 @@
+AAPL
+FB
+TSLA
+GM
+XOM
+SQ
