@@ -19,8 +19,7 @@ from dateutil.relativedelta import relativedelta
 
 
 
-                                        ##### MultiThreading yfinance #####
-### https://stackoverflow.com/questions/60550515/multithreaded-download-of-yahoo-stock-history-with-python-yfinance ###
+     
 
 class MplCanvas(FigureCanvasQTAgg):
 
