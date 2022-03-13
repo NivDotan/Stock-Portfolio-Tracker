@@ -1,6 +1,7 @@
 import string
 from tokenize import String
 from PyQt5 import QtWidgets, QtGui,QtCore 
+from PyQt5.QtWidgets import QFrame
 import yfinance as yf
 import stockquotes as sq
 from PyQt5.QtCore import QObject, pyqtSlot
@@ -71,6 +72,10 @@ class Window2(QtWidgets.QMainWindow):
         self.FiveYear = QtWidgets.QPushButton('5Y', self)
         self.FiveYear.clicked.connect(self.FiveYearsgraph)
 
+        #self.fiveDay.clicked.connect(self.GraphByDays(8, 'day'))
+        #self.OneMonth.clicked.connect(self.GraphByDays(40, 'day'))
+        #self.SixMonth.clicked.connect(self.GraphByDays(5, 'month'))
+        #self.FiveYear.clicked.connect(self.GraphByDays(6, 'month'))
 
 
     def MoreInfo(self):
@@ -100,10 +105,12 @@ class Window2(QtWidgets.QMainWindow):
         options = ['sector','industry', 'dividendRate', 'marketCap', 'trailingPE', 'pegRatio', 'trailingEps', 'bookValue']
         texts = ['Sector','Industry', 'Dividends', 'Market Cap',  'Trailing P/E', 'PEG Ratio', 'Eps', 'Price/Book']
         i = 0
-        x = 350
-        y = 0
         self.Vertical1 = QtWidgets.QVBoxLayout()
         self.Vertical2 = QtWidgets.QVBoxLayout()
+        self.horizental2 = QtWidgets.QHBoxLayout()
+        frame = QFrame()
+        frame.setFrameShape(QFrame.VLine)
+        self.horizental2.addWidget(frame)
         self.horizental1 = QtWidgets.QHBoxLayout()
         count = 0
        
@@ -122,19 +129,24 @@ class Window2(QtWidgets.QMainWindow):
                 self.option.setFont(QtGui.QFont('Helvetica', 12 , weight=QtGui.QFont.Bold))
                 self.option.adjustSize()
                 self.Vertical1.addWidget(self.option)
+                frame = QFrame()
+                frame.setFrameShape(QFrame.HLine)
+                self.Vertical1.addWidget(frame)
                 count = count + 1
             else:
                 self.option.setText(text)
                 self.option.setFont(QtGui.QFont('Helvetica', 12 , weight=QtGui.QFont.Bold))
                 self.option.adjustSize()
+                self.frame = QFrame()
+                self.frame.setFrameShape(QFrame.HLine)
                 self.Vertical2.addWidget(self.option)
+                self.Vertical2.addWidget(self.frame)
 
             self.horizental1.addLayout(self.Vertical1)
-            self.horizental1.addLayout(self.Vertical2)
+            self.horizental2.addLayout(self.Vertical2)
+            self.horizental1.addLayout(self.horizental2)
 
-            x = x 
-            y = y + 27
-            i = i + 1
+           
         
     def Graphs(self, Name):
         today = date.today()
@@ -165,6 +177,14 @@ class Window2(QtWidgets.QMainWindow):
             groups.append(s[-3:])
             s = s[:-3]
         return s + ','.join(reversed(groups))
+
+    """
+    def GraphByDays(self, days, StringOfWhatUnit):
+        today = date.today()
+        BackDate = datetime.now() - relativedelta(days=days)#8,40,6,5
+        print(StringOfWhatUnit)
+        self.CreateGraph(BackDate, today, StringOfWhatUnit) #'day, day, month,month'
+    """
 
     #def MoreGraphs(self, BackDate,Name):
     def FiveDaygraph(self):
@@ -235,7 +255,7 @@ class Window(QtWidgets.QMainWindow):
         self.setCentralWidget(self._main)
         self.layout = QtWidgets.QGridLayout(self._main) 
         i=[0,1,2,3]
-
+        
         with concurrent.futures.ThreadPoolExecutor() as executor:
             graph =list(executor.map(self.Downloan_data, i))
         list_of_cordinations = [[0,1],[1,1],[0,2],[1,2]]
@@ -244,51 +264,6 @@ class Window(QtWidgets.QMainWindow):
             self.layout.addWidget(self.fig, list_of_cordinations[Index][0], list_of_cordinations[Index][1])
         self.showMaximized()
 
-    #def stock_price(self):
-    #    global tickers, len_ticker
-    #    tickers = []
-    #    f = open('stock_watchlist.txt','w+')
-    #    print(f)
-    #    for i in f:
-    #        tickers.append(i)
-    #    print(tickers)
-    #    with concurrent.futures.ThreadPoolExecutor() as executor:
-    #        stock_price_now =list(executor.map(stockprice_by_google, f))
-    #        for i in stock_price_now:
-    #            stockPrice = str(stock_price_now) + " $"
-    #            tickers.append(stockPrice)  
-    #    print(tickers)
-    #    self.createTable(tickers, tickers,3)
-
-    #def createTable(self, stocks, tickers, length):   
-    #    self.tableWidget = QtWidgets.QTableWidget(length,3)
-    #    self.line = QtWidgets.QLineEdit(self)
-    #    self.searchLabel = QtWidgets.QLabel(self)
-    #    #self.searchLabel.setText('Search:')
-    #    self.pybutton = QtWidgets.QPushButton('Search', self)
-    #    
-    #    self.pybutton.clicked.connect(self.NewWindow)
-    #    self.add = QtWidgets.QPushButton('Add New Stock', self)
-    #    self.add.clicked.connect(self.openGraph)
-    #    
-    #    x = 0
-    #    i = 0 
-
-    #    for tick in tickers:
-    #        tick = tick.upper()
-    #        self.tableWidget.setItem(x,0, QtWidgets.QTableWidgetItem(tick))
-    #        x = x + 1
-
-    #    for stock in stocks:
-    #        self.tableWidget.setItem(i,1, QtWidgets.QTableWidgetItem(stock))
-    #        i = i + 1
-
-    #    for j in range(0,3):
-    #        self.__AddButtons(None, None)
-    #        if j == 2:
-    #            j = j
-    #        else:
-    #            j = j + 1
 
     def Downloan_data(self,num):
         try: # st art watching for errors
@@ -329,46 +304,6 @@ class Window(QtWidgets.QMainWindow):
         self.graph.set_xlabel(Indexes[graph_place][2])
         self.graph.set_ylabel(Indexes[graph_place][3])
         self.graph.grid()
-       
-
-    #def __AddButtons(self, order, Pos):
-    #    if order == 'One':
-    #        Pos = int(Pos)
-    #        self.new = QtWidgets.QPushButton("Learn More{}".format(""), self)
-    #        self.tableWidget.setCellWidget(Pos, 2, self.new)
-    #        #print(tickers[Pos])
-    #        self.new.clicked.connect(lambda ch, Pos=Pos: self.NewWindowTable(tickers[Pos])) 
-    #    else:
-    #        for i in range(3):
-    #            self.Btn = QtWidgets.QPushButton("Learn More{}".format(""), self)
-    #            self.tableWidget.setCellWidget(i, 2, self.Btn) 
-    #            #self.layout.addWidget(self.Name)           
-    #            self.Btn.clicked.connect(lambda ch, i=i: self.NewWindowTable(tickers[i]))
-
-    #def AddNewStock(self):
-    #    New_stock = str(self.line.text())
-    #    print('New_stock', New_stock)
-    #    stock_now = sq.Stock(New_stock)
-    #    stockPrice = str(stock_now.current_price) + " $"
-    #    rowPosition = self.tableWidget.rowCount()
-    #    tickers.append(New_stock)
-    #    self.tableWidget.setColumnCount(3)
-    #    self.tableWidget.insertRow(rowPosition)
-    #    self.tableWidget.setItem(rowPosition , 0, QtWidgets.QTableWidgetItem(New_stock))
-    #    self.tableWidget.setItem(rowPosition , 1, QtWidgets.QTableWidgetItem(stockPrice))
-    #    self.tableWidget.setItem(rowPosition , 2, QtWidgets.QTableWidgetItem(self.__AddButtons('One', rowPosition)))
-        
-
-    #def NewWindow(self):
-    #    global stock
-    #    stock = str(self.line.text())
-    #    self.w = Window2()
-
-    #def NewWindowTable(self, x):
-    #    global stock
-    #    stock = x
-    #    print(stock)
-    #    self.w = Window2()
 
    
 class OpenWin(QtWidgets.QMainWindow):
