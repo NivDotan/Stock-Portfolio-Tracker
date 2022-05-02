@@ -347,26 +347,33 @@ class OpenWin(QtWidgets.QMainWindow):
             tickers = json.load(f)
         print(tickers)
 
-        #with concurrent.futures.ThreadPoolExecutor() as executor:
-        #    stock_price_now = []
-        #    temp = []
-        #    for tick in tickers:
-        #        stock_price_now.append(executor.submit(stockprice_by_google, tick[0]))
-        #    for future in concurrent.futures.as_completed(stock_price_now):
-        #        temp.append(future.result())
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            stock_price_now = []
+            temp = []
+            i = 0
+            j = 2
+            for tick in tickers:
+                stock_price_now.append(executor.submit(stockprice_by_google, tick[0]))
+            for future in concurrent.futures.as_completed(stock_price_now):
+                temp.append(future.result())
+                indexInTickers = self.index_2d(tickers,future.result()[0])
+                temp[i].append(tickers[indexInTickers][2])
+                temp[i].append(int(self.ROI(temp[i][1], temp[i][2])))
+                temp[i].append(tickers[indexInTickers][4])
+                i=i+1
+        
+        
 
-
-        for i in range(0,len(tickers)):
-            for j in range(0,len(tickers[i])):
-                if j == 1:
-                    tickers[i][j] = stockprice_by_google(tickers[i][0])[1]
-                elif j == 3:
-                    tickers[i][j] = int(self.ROI(tickers[i][1], tickers[i][2]))
-        self.createTable(tickers, len(tickers))
+        self.createTable(temp, len(temp))
 
     def ROI(self, CurrentPrice, BuyingPrice):
         roi = ((float(CurrentPrice) / float(BuyingPrice))-1)*100
         return roi
+
+    def index_2d(self,myList, v):
+        for i, x in enumerate(myList):
+            if v in x:
+                return i
 
 
     def createTable(self, tickers, length):
