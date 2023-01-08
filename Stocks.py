@@ -11,6 +11,7 @@ import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google
 from dateutil.relativedelta import relativedelta
+import Stocks_DB
 
 
 class MplCanvas(FigureCanvasQTAgg):
@@ -343,11 +344,14 @@ class OpenWin(QtWidgets.QMainWindow):
         global tickers, len_ticker
         tickers = []
 
-        with open('stocks_watchlist.json','r') as f:
+        '''with open('stocks_watchlist.json','r') as f:
             tickers = json.load(f)
+        print(tickers)'''
+        con = Stocks_DB.connectToSqlite()
+        tickers = Stocks_DB.QueryDB(con)
         print(tickers)
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        '''with concurrent.futures.ThreadPoolExecutor() as executor:
             stock_price_now = []
             temp = []
             i = 0
@@ -356,14 +360,32 @@ class OpenWin(QtWidgets.QMainWindow):
                 stock_price_now.append(executor.submit(stockprice_by_google, tick[0]))
             for future in concurrent.futures.as_completed(stock_price_now):
                 temp.append(future.result())
+                print(tickers, " ",future.result()[0])
                 indexInTickers = self.index_2d(tickers,future.result()[0])
                 temp[i].append(tickers[indexInTickers][2])
                 temp[i].append(int(self.ROI(temp[i][1], temp[i][2])))
                 temp[i].append(tickers[indexInTickers][4])
-                i=i+1
+                i=i+1'''
         
-        
+        stock_price_now = []
+        temp = []
+        i = 0
+        j = 2
+        for tick in tickers:
+            stock_price_now.append(stockprice_by_google(tick[1]) )#Current price
 
+        for stock in stock_price_now:
+            temp.append(stock)#Stock name 
+            #print(tickers, " ",future.result()[0])
+            indexInTickers = self.index_2d(tickers,1)#
+            temp[i].append(tickers[indexInTickers][2])#Purchase Price
+            temp[i].append(int(self.ROI(temp[i][1], temp[i][2])))#Current Price
+            temp[i].append(tickers[indexInTickers][3]) #Quantity
+            
+            i=i+1
+        
+        
+        print(temp)
         self.createTable(temp, len(temp))
 
     def ROI(self, CurrentPrice, BuyingPrice):
@@ -378,7 +400,7 @@ class OpenWin(QtWidgets.QMainWindow):
 
     def createTable(self, tickers, length):
         self.tableWidget = QtWidgets.QTableWidget(length, 5)
-        self.tableWidget.setHorizontalHeaderLabels(("Ticker;Stock Price;Cost-Basis;ROI;Date Of Purchse").split(";"))
+        self.tableWidget.setHorizontalHeaderLabels(("Ticker;Stock Price;Quantity;ROI;Date Of Purchse").split(";"))
         self.tableWidget.verticalHeader().hide()
         self.line = QtWidgets.QLineEdit(self)
         self.searchLabel = QtWidgets.QLabel(self)
@@ -393,16 +415,17 @@ class OpenWin(QtWidgets.QMainWindow):
         i = 0
 
         for tick in tickers:
-            ticker = tick[0].upper()
+            print(tick)
+            ticker = tick[0].upper() 
             price = tick[1] + " $"
-            CostBasis = tick[2] + " $"
+            Quantity = str(tick[4]) 
             ROI = str(tick[3]) + " %"
-            Date = tick[4]
+            #Date = tick[4]
             self.tableWidget.setItem(i, 0, QtWidgets.QTableWidgetItem(ticker))
             self.tableWidget.setItem(i, 1, QtWidgets.QTableWidgetItem(price))
-            self.tableWidget.setItem(i, 2, QtWidgets.QTableWidgetItem(CostBasis))
+            self.tableWidget.setItem(i, 2, QtWidgets.QTableWidgetItem(Quantity))
             self.tableWidget.setItem(i, 3, QtWidgets.QTableWidgetItem(ROI))
-            self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(Date))
+            #self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(Date))
             i = i + 1
 
         for j in range(0, 4):
@@ -434,7 +457,9 @@ class OpenWin(QtWidgets.QMainWindow):
         New_stock = str(self.line.text())
         stockPrice = stockprice_by_google(New_stock)[1]
         d1 = time.strftime("%d/%m/%y")
-        self.NewInputForJson(New_stock, stockPrice,d1)
+        #self.NewInputForJson(New_stock, stockPrice,d1)
+        con = Stocks_DB.connectToSqlite()
+        Stocks_DB.InsertToDB(con, New_stock, stockPrice, 1)
         stockPrice = str(stockPrice) + " $"
         rowPosition = self.tableWidget.rowCount()
         #tickers.append(New_stock,stockPrice)
@@ -448,22 +473,11 @@ class OpenWin(QtWidgets.QMainWindow):
         #self.tableWidget.setItem(rowPosition, 5,                                       #rowPosition
                                  #QtWidgets.QTableWidgetItem(self.__AddButtons('One', New_stock, len(tickers))))
 
+        
 
     def TIMENOW(self):
         today = time.strftime("%d/%m/%y")
         return today
-    def NewInputForJson(self, New_stock,currentPrice,date):
-        newStockInfo = [New_stock,"",currentPrice,"",date]
-        with open('stocks_watchlist.json') as f:
-            data = json.load(f)
-        data.append(newStockInfo)
-        with open('stocks_watchlist.json','w') as f:
-            json.dump(data, f)
-
-
-    # Remove the ADDButton of learn more in the table
-    # Remove all the print
-    # Push into github
 
 
 
