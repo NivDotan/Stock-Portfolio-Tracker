@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox
+from PyQt5.QtCore import pyqtSignal
 import yfinance as yf
 import json
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -347,7 +348,10 @@ class OpenWin(QtWidgets.QMainWindow):
         '''with open('stocks_watchlist.json','r') as f:
             tickers = json.load(f)
         print(tickers)'''
+        
+
         con = Stocks_DB.connectToSqlite()
+        Stocks_DB.DeletFromDB(con ,'BABA')
         tickers = Stocks_DB.QueryDB(con)
         print(tickers)
 
@@ -399,8 +403,10 @@ class OpenWin(QtWidgets.QMainWindow):
 
 
     def createTable(self, tickers, length):
-        self.tableWidget = QtWidgets.QTableWidget(length, 5)
-        self.tableWidget.setHorizontalHeaderLabels(("Ticker;Stock Price;Quantity;ROI;Date Of Purchse").split(";"))
+        #self.tableWidget = QtWidgets.QTableWidget(length, 5)
+        #self.tableWidget.setHorizontalHeaderLabels(("Ticker;Stock Price;Quantity;ROI;Date Of Purchse").split(";"))
+        self.tableWidget = QtWidgets.QTableWidget(length, 6)
+        self.tableWidget.setHorizontalHeaderLabels(("Ticker;POS;MKT-Value;Cost-Basis;Price;ROI").split(";"))
         self.tableWidget.verticalHeader().hide()
         self.line = QtWidgets.QLineEdit(self)
         self.searchLabel = QtWidgets.QLabel(self)
@@ -408,7 +414,8 @@ class OpenWin(QtWidgets.QMainWindow):
 
         self.pybutton.clicked.connect(self.NewWindow)
         self.add = QtWidgets.QPushButton('Add New Stock', self)
-        self.add.clicked.connect(self.AddNewStock)
+        self.add.clicked.connect(self.openWin)
+        #self.add.clicked.connect(self.AddNewStock)
         self.graphs = QtWidgets.QPushButton('Daily Indexes', self)
         self.graphs.clicked.connect(self.openGraph)
 
@@ -420,12 +427,16 @@ class OpenWin(QtWidgets.QMainWindow):
             price = tick[1] + " $"
             Quantity = str(tick[4]) 
             ROI = str(tick[3]) + " %"
-            #Date = tick[4]
+            MKTValue = str("%.2f" % (tick[4] * float(tick[1]))) + " $"
+            CostBasis = str("%.2f" % (tick[2] * float(tick[4])))  + " $"
+
             self.tableWidget.setItem(i, 0, QtWidgets.QTableWidgetItem(ticker))
-            self.tableWidget.setItem(i, 1, QtWidgets.QTableWidgetItem(price))
-            self.tableWidget.setItem(i, 2, QtWidgets.QTableWidgetItem(Quantity))
-            self.tableWidget.setItem(i, 3, QtWidgets.QTableWidgetItem(ROI))
-            #self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(Date))
+            self.tableWidget.setItem(i, 1, QtWidgets.QTableWidgetItem(Quantity))
+            self.tableWidget.setItem(i, 2, QtWidgets.QTableWidgetItem(MKTValue))
+            self.tableWidget.setItem(i, 3, QtWidgets.QTableWidgetItem(CostBasis))
+            self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(price))
+            self.tableWidget.setItem(i, 5, QtWidgets.QTableWidgetItem(ROI))
+
             i = i + 1
 
         for j in range(0, 4):
@@ -452,28 +463,33 @@ class OpenWin(QtWidgets.QMainWindow):
                 # self.layout.addWidget(self.Name)
                 self.Btn.clicked.connect(lambda ch, i=i: self.NewWindowTable(tickers[i]))
 
-    def AddNewStock(self):#Learn More Doesnt Work
-
-        New_stock = str(self.line.text())
-        stockPrice = stockprice_by_google(New_stock)[1]
-        d1 = time.strftime("%d/%m/%y")
-        #self.NewInputForJson(New_stock, stockPrice,d1)
-        con = Stocks_DB.connectToSqlite()
-        Stocks_DB.InsertToDB(con, New_stock, stockPrice, 1)
-        stockPrice = str(stockPrice) + " $"
+    def AddNewStock(self):
         rowPosition = self.tableWidget.rowCount()
-        #tickers.append(New_stock,stockPrice)
-        #self.tableWidget.setColumnCount(6)
+        con = Stocks_DB.connectToSqlite()
+        LastStock = Stocks_DB.GetLastRow(con)
+        print(LastStock)
+        New_stock = str(LastStock[1])
+        Quantity = str(LastStock[3])
+        MKTValue = str("%.2f" % (float(LastStock[2]) * float(LastStock[3])) ) + " $"
+        CostBasis = MKTValue
+        stockPrice = str(LastStock[2])
         self.tableWidget.insertRow(rowPosition)
-        self.tableWidget.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(New_stock))
-        self.tableWidget.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(stockPrice))
-        self.tableWidget.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(stockPrice))
-        self.tableWidget.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem("0"))
-        self.tableWidget.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(d1))
-        #self.tableWidget.setItem(rowPosition, 5,                                       #rowPosition
-                                 #QtWidgets.QTableWidgetItem(self.__AddButtons('One', New_stock, len(tickers))))
 
-        
+        self.tableWidget.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(New_stock))
+        self.tableWidget.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(Quantity))
+        self.tableWidget.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(MKTValue))
+        self.tableWidget.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(CostBasis))
+        self.tableWidget.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(stockPrice))
+        self.tableWidget.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem("0 %"))
+
+    def openWin(self):
+        self.win = InputDialog()
+        self.win.window_closed.connect(self.do_something)
+        self.win.show()
+
+    def do_something(self):
+        print("You closed the second window!")
+        self.AddNewStock()
 
     def TIMENOW(self):
         today = time.strftime("%d/%m/%y")
@@ -494,6 +510,63 @@ class OpenWin(QtWidgets.QMainWindow):
         stock = x
         print(stock)
         self.w = Window2()
+
+
+class InputDialog(QDialog):
+    window_closed = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.first = QtWidgets.QLineEdit(self)
+        self.second = QtWidgets.QLineEdit(self)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self);
+
+        layout = QtWidgets.QFormLayout(self)
+        layout.addRow("Stock Ticker", self.first)
+        layout.addRow("Position", self.second)
+        layout.addWidget(buttonBox)
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+    def getInputs(self):
+        return (self.first.text(), self.second.text())
+    
+    def accept(self):
+        if(self.first.text() == "" or self.second.text() == ""):
+            self.show_critical_messagebox()
+        else:
+            stockPrice = stockprice_by_google(self.first.text())
+            con = Stocks_DB.connectToSqlite()
+            Stocks_DB.InsertToDB(con, str(self.first.text()), float(stockPrice[1]), int(self.second.text()))
+            msg = QtWidgets.QMessageBox()
+            msg.setText("Added to the portfolio")
+            #self.closeEvent()
+
+    def closeEvent(self, event):
+        self.window_closed.emit()
+        event.accept()
+    
+    #One of the labels is empty
+    def show_critical_messagebox(self):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+    
+        # setting message for Message Box
+        msg.setText("Please fill all the fields")
+        
+        # setting Message box window title
+        msg.setWindowTitle("Critical MessageBox")
+        
+        # declaring buttons on Message Box
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        
+        # start the app
+        retval = msg.exec_()
+    
+    def NotFoundStock(self):
+        pass
 
 
 app = QtWidgets.QApplication(sys.argv)

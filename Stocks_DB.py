@@ -33,8 +33,12 @@ def InsertToDB(con, tick, price, volume):
     with con:
         con.executemany(sql, data)
 
-def DeletFromDB(con):
-    pass
+def DeletFromDB(con, ticker):
+    sql = 'DELETE FROM STOCKS WHERE tick = ?'
+    data = (ticker,)
+    cursor = con.cursor()
+    cursor.execute(sql, data)
+    con.commit()
 
 
 def UpdateDB(con, Tick, UpdatedPrice):
@@ -44,7 +48,11 @@ def UpdateDB(con, Tick, UpdatedPrice):
     cursor.execute(sql, data)
     con.commit()
 
-
+def GetLastRow(con):
+    cursor = con.cursor()
+    cursor.execute("SELECT * FROM STOCKS ORDER BY id DESC LIMIT 1")
+    result = cursor.fetchone()
+    return result
 
 #Query the DB
 def QueryDB(con):
