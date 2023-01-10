@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderView
+from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt
 import yfinance as yf
 import json
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -13,6 +13,8 @@ import time
 from GetStockPrice import stockprice_by_google
 from dateutil.relativedelta import relativedelta
 import Stocks_DB
+import qdarkstyle
+
 
 
 class MplCanvas(FigureCanvasQTAgg):
@@ -310,6 +312,7 @@ class OpenWin(QtWidgets.QMainWindow):
         self.stock_price()
 
         self.setFixedWidth(900)
+        self.setFixedHeight(425)
 
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
@@ -328,9 +331,21 @@ class OpenWin(QtWidgets.QMainWindow):
         self.Vertical = QtWidgets.QVBoxLayout()
         self.Vertical.addWidget(self.graphs)
         self.Vertical.addWidget(self.pybutton)
+        self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
         self.Vertical.addWidget(self.line)
         self.layout.addLayout(self.Vertical, 0, 0)
+
+        #Solve the problem for the blank space in the tableWidget
+        horizontalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        # Add the widget and the spacer to the horizontal layout
+        self.layout.addItem(horizontalSpacer)
+        
+        self.tableWidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum,QtWidgets.QSizePolicy.Expanding)
+        header = self.tableWidget.horizontalHeader()
+        self.tableWidget.setMaximumWidth(header.length())
+        self.tableWidget.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        
 
         # policy.setVerticalPolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
         #                                         QtWidgets.QSizePolicy.MinimumExpanding))
@@ -351,7 +366,7 @@ class OpenWin(QtWidgets.QMainWindow):
         
 
         con = Stocks_DB.connectToSqlite()
-        Stocks_DB.DeletFromDB(con ,'BABA')
+        #Stocks_DB.DeletFromDB(con ,'BABA')
         tickers = Stocks_DB.QueryDB(con)
         print(tickers)
 
@@ -415,6 +430,8 @@ class OpenWin(QtWidgets.QMainWindow):
         self.pybutton.clicked.connect(self.NewWindow)
         self.add = QtWidgets.QPushButton('Add New Stock', self)
         self.add.clicked.connect(self.openWin)
+        self.delete = QtWidgets.QPushButton('Delete Stock', self)
+        self.delete.clicked.connect(self.DeleteStock)
         #self.add.clicked.connect(self.AddNewStock)
         self.graphs = QtWidgets.QPushButton('Daily Indexes', self)
         self.graphs.clicked.connect(self.openGraph)
@@ -482,6 +499,14 @@ class OpenWin(QtWidgets.QMainWindow):
         self.tableWidget.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(stockPrice))
         self.tableWidget.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem("0 %"))
 
+
+    def DeleteStock(self):
+        self.win = DeletStockDialog()
+        #self.win.window_closed.connect(self.do_something)
+        #Need to add a function for refresh the table every time 
+        self.win.show()
+        
+
     def openWin(self):
         self.win = InputDialog()
         self.win.window_closed.connect(self.do_something)
@@ -517,7 +542,7 @@ class InputDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        #self.setWindowFlag(Qt.FramelessWindowHint)
         self.first = QtWidgets.QLineEdit(self)
         self.second = QtWidgets.QLineEdit(self)
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self);
@@ -568,8 +593,62 @@ class InputDialog(QDialog):
     def NotFoundStock(self):
         pass
 
+class DeletStockDialog(QDialog):
+    window_closed = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        #self.setWindowFlag(Qt.FramelessWindowHint)
+        self.first = QtWidgets.QLineEdit(self)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self);
+
+        layout = QtWidgets.QFormLayout(self)
+        layout.addRow("Stock Ticker", self.first)
+        layout.addWidget(buttonBox)
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+    def getInputs(self):
+        return (self.first.text())
+    
+    def accept(self):
+        con = Stocks_DB.connectToSqlite()
+        Stocks = Stocks_DB.QueryDB(con)
+        Stock = self.first.text()
+        if(Stock == "" or not(Stock in Stocks)):
+            self.show_critical_messagebox(Stocks)
+        else:
+            Stocks_DB.DeletFromDB(con,Stock)
+            msg = QtWidgets.QMessageBox()
+            msg.setText("Deleted from the portfolio")
+            #self.closeEvent()
+
+    def closeEvent(self, event):
+        self.window_closed.emit()
+        event.accept()
+    
+    #One of the labels is empty
+    def show_critical_messagebox(self, Stock):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+    
+        # setting message for Message Box
+        MsgStr = "Stock ",Stock, " Does not exist in the portfolio"
+        msg.setText(MsgStr)
+        
+        # setting Message box window title
+        msg.setWindowTitle("Critical MessageBox")
+        
+        # declaring buttons on Message Box
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        
+        # start the app
+        retval = msg.exec_()
+
 
 app = QtWidgets.QApplication(sys.argv)
+app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5()) #Set the style as dark theme
 a_window = OpenWin()
 
 sys.exit(app.exec_())
