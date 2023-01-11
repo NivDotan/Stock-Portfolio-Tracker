@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderV
 from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt
 import yfinance as yf
 import json
+import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import sys
@@ -368,44 +369,27 @@ class OpenWin(QtWidgets.QMainWindow):
         con = Stocks_DB.connectToSqlite()
         #Stocks_DB.DeletFromDB(con ,'BABA')
         tickers = Stocks_DB.QueryDB(con)
-        print(tickers)
+        #print(tickers)
 
-        '''with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             stock_price_now = []
-            temp = []
+            StockInfo = []
             i = 0
             j = 2
             for tick in tickers:
-                stock_price_now.append(executor.submit(stockprice_by_google, tick[0]))
+                stock_price_now.append(executor.submit(stockprice_by_google, tick[1]))
             for future in concurrent.futures.as_completed(stock_price_now):
-                temp.append(future.result())
-                print(tickers, " ",future.result()[0])
+                StockInfo.append(future.result())
+                #print(tickers, " ",future.result()[0])
                 indexInTickers = self.index_2d(tickers,future.result()[0])
-                temp[i].append(tickers[indexInTickers][2])
-                temp[i].append(int(self.ROI(temp[i][1], temp[i][2])))
-                temp[i].append(tickers[indexInTickers][4])
-                i=i+1'''
-        
-        stock_price_now = []
-        temp = []
-        i = 0
-        j = 2
-        for tick in tickers:
-            stock_price_now.append(stockprice_by_google(tick[1]) )#Current price
-
-        for stock in stock_price_now:
-            temp.append(stock)#Stock name 
-            #print(tickers, " ",future.result()[0])
-            indexInTickers = self.index_2d(tickers,1)#
-            temp[i].append(tickers[indexInTickers][2])#Purchase Price
-            temp[i].append(int(self.ROI(temp[i][1], temp[i][2])))#Current Price
-            temp[i].append(tickers[indexInTickers][3]) #Quantity
-            
-            i=i+1
+                StockInfo[i].append(tickers[indexInTickers][2])
+                StockInfo[i].append(int(self.ROI(StockInfo[i][1], StockInfo[i][2])))
+                StockInfo[i].append(tickers[indexInTickers][3])
+                i=i+1
         
         
-        print(temp)
-        self.createTable(temp, len(temp))
+        self.createTable(StockInfo, len(StockInfo))
+        #self.createTable(temp, len(temp))
 
     def ROI(self, CurrentPrice, BuyingPrice):
         roi = ((float(CurrentPrice) / float(BuyingPrice))-1)*100
@@ -439,7 +423,7 @@ class OpenWin(QtWidgets.QMainWindow):
         i = 0
 
         for tick in tickers:
-            print(tick)
+            #print(tick)
             ticker = tick[0].upper() 
             price = tick[1] + " $"
             Quantity = str(tick[4]) 
@@ -498,23 +482,51 @@ class OpenWin(QtWidgets.QMainWindow):
         self.tableWidget.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(CostBasis))
         self.tableWidget.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(stockPrice))
         self.tableWidget.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem("0 %"))
+    
+    def DeleteAndRefresh(self):
+        con = Stocks_DB.connectToSqlite()
+        TickersListDB = Stocks_DB.QueryDB(con)
+        AllTicks = []
+        TickersListDB2 = []
+        i = 1
+        for tick in TickersListDB:
+            TickersListDB2.append(tick[1])
+
+        for i in range(self.tableWidget.rowCount()):
+            tmpTick = self.tableWidget.item(i, 0).text()  
+            AllTicks.append(tmpTick)
+        
+        main_list = list(set(AllTicks) - set(TickersListDB2))
+        RowNum = 1
+        for tick in AllTicks:
+            if (tick != main_list[0]):
+                RowNum = RowNum + 1
+            else:
+                break
+        #The Rows doesnt refresh
+        #self.tableWidget.removeRow(RowNum)   
+
+        
 
 
     def DeleteStock(self):
         self.win = DeletStockDialog()
-        #self.win.window_closed.connect(self.do_something)
-        #Need to add a function for refresh the table every time 
+        self.win.window_closed.connect(self.GetDeleteInTable)
         self.win.show()
         
 
     def openWin(self):
         self.win = InputDialog()
-        self.win.window_closed.connect(self.do_something)
+        self.win.window_closed.connect(self.GetAddInTable)
         self.win.show()
 
-    def do_something(self):
-        print("You closed the second window!")
+    def GetAddInTable(self):
+        print("You closed the Add Stock window!")
         self.AddNewStock()
+
+    def GetDeleteInTable(self):
+        print("You closed the Delete Stock window!")
+        self.DeleteAndRefresh()
 
     def TIMENOW(self):
         today = time.strftime("%d/%m/%y")
@@ -565,9 +577,9 @@ class InputDialog(QDialog):
             stockPrice = stockprice_by_google(self.first.text())
             con = Stocks_DB.connectToSqlite()
             Stocks_DB.InsertToDB(con, str(self.first.text()), float(stockPrice[1]), int(self.second.text()))
-            msg = QtWidgets.QMessageBox()
-            msg.setText("Added to the portfolio")
+            self.show_Added_messagebox()
             #self.closeEvent()
+            self.close()
 
     def closeEvent(self, event):
         self.window_closed.emit()
@@ -588,6 +600,13 @@ class InputDialog(QDialog):
         msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         
         # start the app
+        retval = msg.exec_()
+    
+    def show_Added_messagebox(self):
+        msg = QtWidgets.QMessageBox()
+        MsgStr = "Added to the portfolio"
+        msg.setText(MsgStr)
+        msg.setStandardButtons(QMessageBox.Ok)
         retval = msg.exec_()
     
     def NotFoundStock(self):
@@ -616,12 +635,18 @@ class DeletStockDialog(QDialog):
         con = Stocks_DB.connectToSqlite()
         Stocks = Stocks_DB.QueryDB(con)
         Stock = self.first.text()
+        FoundStock = False
         if(Stock == "" or not(Stock in Stocks)):
-            self.show_critical_messagebox(Stocks)
-        else:
+            for tmp in Stocks:
+                if(Stock == tmp[1]):
+                    FoundStock = True
+                    break
+            if FoundStock == False:
+                self.show_critical_messagebox(Stocks)
+        if(FoundStock == True):
             Stocks_DB.DeletFromDB(con,Stock)
-            msg = QtWidgets.QMessageBox()
-            msg.setText("Deleted from the portfolio")
+            self.show_Done_messagebox()
+            self.close()
             #self.closeEvent()
 
     def closeEvent(self, event):
@@ -634,16 +659,23 @@ class DeletStockDialog(QDialog):
         msg.setIcon(QtWidgets.QMessageBox.Critical)
     
         # setting message for Message Box
-        MsgStr = "Stock ",Stock, " Does not exist in the portfolio"
+        MsgStr = "Stock Does not exist in the portfolio"
         msg.setText(MsgStr)
         
         # setting Message box window title
         msg.setWindowTitle("Critical MessageBox")
         
         # declaring buttons on Message Box
-        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg.setStandardButtons(QMessageBox.Ok)
         
         # start the app
+        retval = msg.exec_()
+    
+    def show_Done_messagebox(self):
+        msg = QtWidgets.QMessageBox()
+        MsgStr = "Deleted from the portfolio"
+        msg.setText(MsgStr)
+        msg.setStandardButtons(QMessageBox.Ok)
         retval = msg.exec_()
 
 

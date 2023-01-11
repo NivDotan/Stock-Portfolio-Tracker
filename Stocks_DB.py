@@ -61,11 +61,11 @@ def QueryDB(con):
         data = con.execute("SELECT * FROM STOCKS") #print the DB
         for row in data:
             dataToGet.append(row)
-            print(row)
+            #print(row)
     return dataToGet
     
 
 
 con = connectToSqlite()
-c = QueryDB(con)
+#c = QueryDB(con)
 
