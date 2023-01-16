@@ -173,7 +173,7 @@ class Window2(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Review Stock")
-
+        self._Stock = GetGlobalStock()
         self.init_ui()
 
     def init_ui(self):
@@ -197,7 +197,19 @@ class Window2(QtWidgets.QMainWindow):
 
         self.show()
 
-    def Buttons(self, Stock):
+    @property
+    def Stock(self):
+        return self._Stock
+
+    @Stock.setter
+    def Stock(self, stock):
+        self._Stock = stock
+    
+    @Stock.deleter
+    def Stock(self):
+        del self._Stock
+
+    def Buttons(self):
         self.fiveDay = QtWidgets.QPushButton('5D', self)
         self.fiveDay.clicked.connect(self.FiveDaygraph)
         self.OneMonth = QtWidgets.QPushButton('1M', self)
@@ -214,7 +226,7 @@ class Window2(QtWidgets.QMainWindow):
 
     def MoreInfo(self):
         global info
-        Stock = stock.upper()
+        Stock = self._Stock.upper()
         StockTIck = yf.Ticker(str(Stock))
         info = StockTIck.info
 
@@ -232,16 +244,16 @@ class Window2(QtWidgets.QMainWindow):
         #Revenue
 
         self.textTick = QtWidgets.QLabel(self)
-        text = str(info['longName']) + " : " + "\n " + str(stockPrice[1] + ' $')
+        text = str(info['longName']) + " :" + "\n" + str(stockPrice[1] + ' $')
         self.textTick.setText(text)
         self.textTick.setFont(QtGui.QFont('Arial', 16, weight=QtGui.QFont.Bold))
         self.textTick.setAlignment(QtCore.Qt.AlignLeft)
 
-        self.Labels()
+        self.Labels(info)
         self.Graphs(Stock)
-        self.Buttons(Stock)
+        self.Buttons()
 
-    def Labels(self):
+    def Labels(self,info):
         options = ['sector', 'industry', 'dividendRate', 'marketCap', 'trailingPE', 'pegRatio', 'trailingEps',
                    'bookValue']
         texts = ['Sector', 'Industry', 'Dividends', 'Market Cap', 'Trailing P/E', 'PEG Ratio', 'Eps', 'Price/Book']
@@ -258,15 +270,15 @@ class Window2(QtWidgets.QMainWindow):
         for option in options:
             self.option = QtWidgets.QLabel(self)
             if option == 'marketCap':
-                text = str(str(texts[i]) + " : " + self.group(int(info[option])) + "$")
+                text = str(str(texts[i]) + " : " + self.group(int(info[option])) + " $")
             elif option == 'trailingEps':
-                text = str(str(texts[i]) + " : " + str(info[option]) + "$")
+                text = str(str(texts[i]) + " : " + str(info[option]) + " $")
             else:
                 text = str(str(texts[i]) + " : " + str(info[option]))
             if count <= (len(options) / 2) - 1:
 
                 self.option.setText(text)
-                self.option.setFont(QtGui.QFont('Helvetica', 12, weight=QtGui.QFont.Bold))
+                self.option.setFont(QtGui.QFont('Arial', 12, weight=QtGui.QFont.Bold))
                 self.option.adjustSize()
                 self.Vertical1.addWidget(self.option)
                 frame = QFrame()
@@ -275,7 +287,7 @@ class Window2(QtWidgets.QMainWindow):
                 count = count + 1
             else:
                 self.option.setText(text)
-                self.option.setFont(QtGui.QFont('Helvetica', 12, weight=QtGui.QFont.Bold))
+                self.option.setFont(QtGui.QFont('Arial', 12, weight=QtGui.QFont.Bold))
                 self.option.adjustSize()
                 self.frame = QFrame()
                 self.frame.setFrameShape(QFrame.HLine)
@@ -285,6 +297,7 @@ class Window2(QtWidgets.QMainWindow):
             self.horizental1.addLayout(self.Vertical1)
             self.horizental2.addLayout(self.Vertical2)
             self.horizental1.addLayout(self.horizental2)
+            i = i+1
 
     def Graphs(self, Name):
         today = date.today()
@@ -298,13 +311,19 @@ class Window2(QtWidgets.QMainWindow):
         dates = range(len(List))
 
         self.f = Figure(figsize=(6, 4), dpi=100)
-        self.f.patch.set_facecolor('#F2F2F2')
+        self.f.patch.set_facecolor("#19232D")
         self.fig = FigureCanvasQTAgg(self.f)
         self.graph = self.fig.figure.subplots()
         self.graph.plot(dates, List)
-        self.graph.set_title(str(Name))
-        self.graph.set_xlabel('Days')
-        self.graph.set_ylabel('Price')
+        self.graph.set_facecolor("#19232D")
+        self.graph.set_title(str(Name),color="white")
+        self.graph.plot(dates, List,color="white")
+        self.graph.set_xlabel('Days',color="white")
+        self.graph.set_ylabel('Price',color="white")
+        self.graph.spines['bottom'].set_color('white')
+        self.graph.spines['left'].set_color('white')
+        self.graph.tick_params(axis='x', colors='white')
+        self.graph.tick_params(axis='y', colors='white')
 
         self.graph.grid()
 
@@ -372,13 +391,21 @@ class Window2(QtWidgets.QMainWindow):
         dates = range(len(List))
 
         self.f = Figure(figsize=(6, 4), dpi=100)
-        self.f.patch.set_facecolor('#F2F2F2')
+        #self.f.patch.set_facecolor('#F2F2F2')
+        self.f.patch.set_facecolor("#19232D")
         self.fig = FigureCanvasQTAgg(self.f)
         self.graph = self.fig.figure.subplots()
         self.graph.plot(dates, List)
-        self.graph.set_title(str(Stock))
-        self.graph.set_xlabel('Days')
-        self.graph.set_ylabel('Price')
+        self.graph.set_facecolor("#19232D")
+        self.graph.set_title(str(Stock),color="white")
+        self.graph.plot(dates, List,color="white")
+        
+        self.graph.set_xlabel('Days',color="white")
+        self.graph.set_ylabel('Price',color="white")
+        self.graph.spines['bottom'].set_color('white')
+        self.graph.spines['left'].set_color('white')
+        self.graph.tick_params(axis='x', colors='white')
+        self.graph.tick_params(axis='y', colors='white')
         self.graph.grid()
         self.layout.addWidget(self.fig, 1, 1)
 
@@ -449,12 +476,14 @@ class OpenWin(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self._Global_Stock = None
         self.init_ui()
 
     def init_ui(self):
+        self.setWindowFlag(Qt.FramelessWindowHint)
         self.stock_price()
 
-        self.setFixedWidth(900)
+        #self.setFixedWidth(900)
         self.setFixedHeight(425)
 
         self._main = QtWidgets.QWidget()
@@ -472,11 +501,16 @@ class OpenWin(QtWidgets.QMainWindow):
         self.tableWidget.resize(self.tableWidget.width(), self.tableWidget.height())
 
         self.Vertical = QtWidgets.QVBoxLayout()
+        self.VerticalSearch = QtWidgets.QVBoxLayout()
         self.Vertical.addWidget(self.graphs)
-        self.Vertical.addWidget(self.pybutton)
+        #self.Vertical.addWidget(self.pybutton)
         self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
-        self.Vertical.addWidget(self.line)
+        #self.Vertical.addWidget(self.line)
+        self.VerticalSearch.addWidget(self.pybutton)
+        self.VerticalSearch.addWidget(self.line)
+        self.Vertical.addLayout(self.VerticalSearch)
+        self.Vertical.addWidget(self.exit)
         self.layout.addLayout(self.Vertical, 0, 0)
 
         #Solve the problem for the blank space in the tableWidget
@@ -550,9 +584,11 @@ class OpenWin(QtWidgets.QMainWindow):
         self.tableWidget.setHorizontalHeaderLabels(("Ticker;POS;MKT-Value;Cost-Basis;Price;ROI").split(";"))
         self.tableWidget.verticalHeader().hide()
         self.line = QtWidgets.QLineEdit(self)
-        self.searchLabel = QtWidgets.QLabel(self)
-        self.pybutton = QtWidgets.QPushButton('Search', self)
-
+        self.searchLabel = QtWidgets.QLabel(self)        
+        self.exit = QtWidgets.QPushButton('Exit', self)
+        self.exit.clicked.connect(self.close)
+        
+        self.pybutton = QtWidgets.QPushButton('Search Stock', self)
         self.pybutton.clicked.connect(self.NewWindow)
         self.add = QtWidgets.QPushButton('Add New Stock', self)
         self.add.clicked.connect(self.openWin)
@@ -684,8 +720,10 @@ class OpenWin(QtWidgets.QMainWindow):
         self.w.show()
 
     def NewWindow(self):
-        global stock
-        stock = str(self.line.text())
+        #global stock
+        #stock = str(self.line.text())
+        #self._Global_Stock = (str(self.line.text()))
+        CreateAGlobalStock(str(self.line.text()))
         self.w = Window2()
 
     def NewWindowTable(self, x):
@@ -693,6 +731,22 @@ class OpenWin(QtWidgets.QMainWindow):
         stock = x
         print(stock)
         self.w = Window2()
+    
+    
+    @property
+    def Global_Stock(self):
+        print("getter of x called")
+        return self._Global_Stock
+
+    @Global_Stock.setter
+    def Global_Stock(self, stock):
+        self._Global_Stock = stock
+    
+    @Global_Stock.deleter
+    def Global_Stock(self):
+        print("deleter of x called")
+        del self._Global_Stock
+
 
 
 class InputDialog(QDialog):
@@ -885,7 +939,13 @@ class GraphsDialog(QDialog):
         self.w.ShowGraph()
         
        
-        
+def CreateAGlobalStock(stock):
+    OpenWin.Global_Stock = stock
+
+def GetGlobalStock():
+    return OpenWin.Global_Stock
+
+
     
 
 app = QtWidgets.QApplication(sys.argv)
