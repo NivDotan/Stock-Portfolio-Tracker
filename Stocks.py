@@ -131,6 +131,7 @@ class GraphsClass(QtWidgets.QMainWindow):
             index -= 1
 
         Stock = stock.upper()
+        print('stock', stock)
         if DayOrMonth == 'day':
 
             data = yf.download(Stock, start=BackDate, end=str(today), interval="5m")
@@ -377,12 +378,13 @@ class Window2(QtWidgets.QMainWindow):
                 pass
             index -= 1
 
-        Stock = stock.upper()
+        StockTmp = (self._Stock).upper()
+        
         if DayOrMonth == 'day':
 
-            data = yf.download(Stock, start=BackDate, end=str(today), interval="5m")
+            data = yf.download(StockTmp, start=BackDate, end=str(today), interval="5m")
         else:
-            data = yf.download(Stock, start=BackDate, end=str(today))
+            data = yf.download(StockTmp, start=BackDate, end=str(today))
         prices = data['Close']
         List = []
         dates = len(List)
@@ -397,7 +399,7 @@ class Window2(QtWidgets.QMainWindow):
         self.graph = self.fig.figure.subplots()
         self.graph.plot(dates, List)
         self.graph.set_facecolor("#19232D")
-        self.graph.set_title(str(Stock),color="white")
+        self.graph.set_title(str(StockTmp),color="white")
         self.graph.plot(dates, List,color="white")
         
         self.graph.set_xlabel('Days',color="white")
