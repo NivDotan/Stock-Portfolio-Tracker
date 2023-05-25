@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderView
-from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt
+from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt, QTimer
 import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google
@@ -9,6 +9,7 @@ from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog
 import SearchWindow
 import sys
 import qdarkstyle
+
 
 
 class HomeWindoowClass(QtWidgets.QMainWindow):
@@ -27,7 +28,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
-
+        
         self.layout = QtWidgets.QGridLayout(self._main)
 
         self.layout.addWidget(self.tableWidget, 0, 1)
@@ -38,7 +39,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
         self.tableWidget.setSizePolicy(policy)
         self.tableWidget.resize(self.tableWidget.width(), self.tableWidget.height())
-
+        
         self.Vertical = QtWidgets.QVBoxLayout()
         self.VerticalSearch = QtWidgets.QVBoxLayout()
         self.Vertical.addWidget(self.graphs)
@@ -70,8 +71,17 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.line.setSizePolicy(
             policy)  ### https://stackoverflow.com/questions/59572310/pyqt5-qgridlayout-sizing-incorrect
 
-        self.show()
+        #self.show()
+        
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.UpdatePrices)
 
+        # Set the update interval to 1 minute (60000 milliseconds)
+        update_interval = 60000
+        self.update_timer.start(update_interval)
+
+        self.show()
+        
     def stock_price(self):
         global tickers, len_ticker
         tickers = []
@@ -104,6 +114,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         
         
         self.createTable(StockInfo, len(StockInfo))
+        
         #self.createTable(temp, len(temp))
 
     def ROI(self, CurrentPrice, BuyingPrice):
@@ -251,7 +262,53 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         today = time.strftime("%d/%m/%y")
         return today
 
+    def UpdatePrices(self):
+        
+        print("updating")
+        global tickers, len_ticker
+        tickers = []
+        con = Stocks_DB.connectToSqlite()
+        tickers = Stocks_DB.QueryDB(con)
 
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            stock_price_now = []
+            StockInfo = []
+            i = 0
+            j = 2
+            
+            for tick in tickers:
+                stock_price_now.append(executor.submit(stockprice_by_google, tick[1]))
+            for future in concurrent.futures.as_completed(stock_price_now):
+                StockInfo.append(future.result())
+                
+                #print(tickers, " ",future.result()[0])
+                indexInTickers = self.index_2d(tickers,future.result()[0])
+                StockInfo[i].append(tickers[indexInTickers][2])
+                StockInfo[i].append(int(self.ROI(StockInfo[i][1], StockInfo[i][2])))
+                StockInfo[i].append(tickers[indexInTickers][3])
+                i=i+1
+
+       
+        my_dict = {sublist[0]: sublist[1:] for sublist in StockInfo}
+        #tmp = self.tableWidget.item(0, 0)
+        #print(my_dict)
+        #print("tmp ", tmp.text())
+        #value = my_dict.get(tmp.text())
+        #print(value)
+        print("my_dict ", my_dict)
+        for i in range (self.tableWidget.rowCount()):
+            tmpTickerName = self.tableWidget.item(i, 0)
+            value = my_dict.get(tmpTickerName.text())
+    
+            MKTValue = str("%.2f" % (float(value[0]) * float(value[3])) ) + " $"
+            price = value[0] + " $"
+            ROI = str(value[2]) + " %"
+
+            self.tableWidget.setItem(i, 2, QtWidgets.QTableWidgetItem(MKTValue))
+            self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(price))
+            self.tableWidget.setItem(i, 5, QtWidgets.QTableWidgetItem(ROI))
+
+        
 
     def openGraph(self):
         #self.w = Window()
