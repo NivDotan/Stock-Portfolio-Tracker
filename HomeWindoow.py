@@ -42,7 +42,10 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         
         self.Vertical = QtWidgets.QVBoxLayout()
         self.VerticalSearch = QtWidgets.QVBoxLayout()
+        self.Vertical.addWidget(self.PortfolioSummery)
+        self.PortfolioSummery.setSizePolicy(policy.Fixed, policy.Fixed)
         self.Vertical.addWidget(self.graphs)
+        
         #self.Vertical.addWidget(self.pybutton)
         self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
@@ -50,6 +53,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.VerticalSearch.addWidget(self.pybutton)
         self.VerticalSearch.addWidget(self.line)
         self.Vertical.addLayout(self.VerticalSearch)
+        self.line.setAlignment(Qt.AlignCenter)
         self.Vertical.addWidget(self.exit)
         self.layout.addLayout(self.Vertical, 0, 0)
 
@@ -68,10 +72,12 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #                                         QtWidgets.QSizePolicy.MinimumExpanding))
 
         policy.setVerticalPolicy(policy.Maximum)
-        self.line.setSizePolicy(
-            policy)  ### https://stackoverflow.com/questions/59572310/pyqt5-qgridlayout-sizing-incorrect
+        #self.line.setSizePolicy(
+        #    policy)  ### https://stackoverflow.com/questions/59572310/pyqt5-qgridlayout-sizing-incorrect
+        
+        self.line.setSizePolicy(policy.Fixed, policy.Fixed)
 
-        #self.show()
+      
         
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.UpdatePrices)
@@ -116,6 +122,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.createTable(StockInfo, len(StockInfo))
         
         #self.createTable(temp, len(temp))
+    
 
     def ROI(self, CurrentPrice, BuyingPrice):
         roi = ((float(CurrentPrice) / float(BuyingPrice))-1)*100
@@ -147,9 +154,11 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #self.add.clicked.connect(self.AddNewStock)
         self.graphs = QtWidgets.QPushButton('Daily Indexes', self)
         self.graphs.clicked.connect(self.openGraph)
+        
 
         i = 0
-
+        PortfolioValue = 0
+        PortfolioBuyingValue = 0
         for tick in tickers:
             #print(tick)
             ticker = tick[0].upper() 
@@ -167,6 +176,17 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
             self.tableWidget.setItem(i, 5, QtWidgets.QTableWidgetItem(ROI))
 
             i = i + 1
+
+            PortfolioValue = PortfolioValue + float(("%.2f" % (tick[4] * float(tick[1]))))
+            PortfolioBuyingValue = PortfolioBuyingValue + float("%.2f" % (tick[2] * float(tick[4])))
+
+        ROIPortfolio = self.ROI(PortfolioValue,PortfolioBuyingValue)
+        TmpMassageStr = 'Account P&L: ' + str("%.2f" % PortfolioBuyingValue) + " $" + "\n" + "ROI: " +  str("%.2f" % ROIPortfolio) + " %"
+        self.PortfolioSummery = QtWidgets.QLabel(TmpMassageStr, self)
+        font = QtGui.QFont("Calibri", 10)
+        font.setBold(True)
+        self.PortfolioSummery.setFont(font)
+        self.PortfolioSummery.setAlignment(Qt.AlignCenter)
 
         for j in range(0, 4):
             #self.__AddButtons(None, None, length)
