@@ -5,7 +5,7 @@ import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google
 import Stocks_DB
-from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog
+from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow
 import SearchWindow
 import sys
 import qdarkstyle
@@ -45,7 +45,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.Vertical.addWidget(self.PortfolioSummery)
         self.PortfolioSummery.setSizePolicy(policy.Fixed, policy.Fixed)
         self.Vertical.addWidget(self.graphs)
-        
+        self.Vertical.addWidget(self.PopUpWind)
         #self.Vertical.addWidget(self.pybutton)
         self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
@@ -77,8 +77,8 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         
         self.line.setSizePolicy(policy.Fixed, policy.Fixed)
 
-      
-        
+
+
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.UpdatePrices)
 
@@ -101,6 +101,8 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #Stocks_DB.DeletFromDB(con ,'BABA')
         tickers = Stocks_DB.QueryDB(con)
         #print(tickers)
+
+
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             stock_price_now = []
@@ -154,6 +156,9 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #self.add.clicked.connect(self.AddNewStock)
         self.graphs = QtWidgets.QPushButton('Daily Indexes', self)
         self.graphs.clicked.connect(self.openGraph)
+        self.PopUpWind = QtWidgets.QPushButton('Create a Pop Up Window', self)
+        self.PopUpWind.clicked.connect(self.OpenCreatePopUpWin)
+
         
 
         i = 0
@@ -255,8 +260,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #https://stackoverflow.com/questions/4146633/row-deleted-from-model-stays-in-view-what-am-i-doing-wrong
         #https://stackoverflow.com/questions/38177144/how-to-emit-datachanged-in-pyqt5
         #self.tableWidget.removeRow(RowNum)   
-
-        
+   
 
 
     def DeleteStock(self):
@@ -334,6 +338,11 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #self.w = Window()
         self.w = GraphsDialog()
         self.w.show()
+
+    def OpenCreatePopUpWin(self):
+        self.w = CreatePopUpWindow()
+        self.w.show()
+
 
     def NewWindow(self):
         #global stock

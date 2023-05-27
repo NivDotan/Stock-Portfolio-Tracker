@@ -64,6 +64,43 @@ def QueryDB(con):
             #print(row)
     return dataToGet
     
+def QueryDBPopUp(con):
+    dataToGet = []
+    with con:
+        data = con.execute("SELECT * FROM PopUps") #print the DB
+        for row in data:
+            dataToGet.append(row)
+            #print(row)
+    return dataToGet
+
+def CreatePopUpDB(con):
+    with con: #Change it to: id INTEGER, tick TEXT, price FLOAT, volume INTEGER
+        con.execute("""
+            CREATE TABLE PopUps (
+                Tick TEXT,
+                PopUp_Reason TEXT ,
+                Intervals TEXT,
+                Started INTEGER, 
+                Init_Price INTEGER
+            );
+        """)
+
+
+def InsertToPopUpDB(con, tick, popup_Reason, interval, started, InitPrice):
+    sql = 'INSERT INTO PopUps (Tick, PopUp_Reason, Intervals, Started,Init_Price) values(?, ?, ?, ?, ?)' #tick, price, volume
+    data = [
+        #(1, 'Alice', 21,0),
+        (tick, popup_Reason, interval, started, InitPrice)
+    ]
+    with con:
+        con.executemany(sql, data)
+
+
+def add_column(con, table_name, column_name, column_type):
+    cursor = con.cursor()
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+    con.commit()
+    con.close()
 
 
 con = connectToSqlite()

@@ -193,5 +193,81 @@ class GraphsDialog(QDialog):
         self.w.ShowGraph()
              
 
+class CreatePopUpWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__()
+        super().__init__(parent)
+        self.setWindowFlag(Qt.FramelessWindowHint)
+
+        self.setWindowTitle("Message Window")
+
+        # Create labels
+        label1 = QtWidgets.QLabel("Ticker:")
+        label2 = QtWidgets.QLabel("PopUp Reason:")
+        label3 = QtWidgets.QLabel("Interval :")
+        # Create input field
+        self.input_field = QtWidgets.QLineEdit()
+
+        # Create list field
+        self.list_field = QtWidgets.QComboBox()
+        self.list_field2 = QtWidgets.QComboBox()
+
+        list_fieldList = ['RSI Below 35']
+        list_field2List = ['30Min', '1H', '4H', '1D']
+
+        self.list_field.addItems(list_fieldList)
+        self.list_field2.addItems(list_field2List)
+        # Create buttons
+        create_button = QtWidgets.QPushButton("Create")
+        cancel_button = QtWidgets.QPushButton("Cancel")
+
+        # Connect button signals to slots
+        create_button.clicked.connect(self.create_button_clicked)
+        cancel_button.clicked.connect(self.close)
+
+        # Create layout and add widgets
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label1)
+        layout.addWidget(self.input_field)
+        layout.addWidget(label2)
+        layout.addWidget(self.list_field)
+        layout.addWidget(label3)
+        layout.addWidget(self.list_field2)
+        layout.addWidget(create_button)
+        layout.addWidget(cancel_button)
+
+        self.setLayout(layout)
+
+    def create_button_clicked(self):
+        try:
+            Ticker = str(self.input_field.text())
+            PriceTicker = stockprice_by_google(Ticker)
+            con = Stocks_DB.connectToSqlite()
+            popupReason = str(self.list_field.currentText())
+            interval = str(self.list_field2.currentText())
+            Started = 0
+        
+
+            if not (PriceTicker is None):
+                Stocks_DB.InsertToPopUpDB(con,Ticker, popupReason, interval, Started, float(PriceTicker[1]))
+                print("Create button clicked")
+                self.close
+                
+            else:
+                popup = QMessageBox()
+                popup.setText("Stock Ticker Not Found: " + Ticker)
+                popup.exec_()
+
+        except AttributeError:
+            popup = QMessageBox()
+            popup.setText("Please Provide a Stock Ticker")
+            popup.exec_()
+
+
+        
+        
+
+
+
 
 
