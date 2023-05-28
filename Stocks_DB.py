@@ -32,6 +32,7 @@ def InsertToDB(con, tick, price, volume):
     ]
     with con:
         con.executemany(sql, data)
+    con.commit()
 
 def DeletFromDB(con, ticker):
     sql = 'DELETE FROM STOCKS WHERE tick = ?'
@@ -58,23 +59,24 @@ def GetLastRow(con):
 def QueryDB(con):
     dataToGet = []
     with con:
-        data = con.execute("SELECT * FROM STOCKS") #print the DB
+        data = con.execute(f"SELECT * FROM STOCKS") #print the DB
         for row in data:
             dataToGet.append(row)
             #print(row)
     return dataToGet
     
-def QueryDBPopUp(con):
+def QueryDBVar(con, table_name):
     dataToGet = []
-    with con:
-        data = con.execute("SELECT * FROM PopUps") #print the DB
-        for row in data:
-            dataToGet.append(row)
-            #print(row)
+    cursor = con.cursor()
+    data = cursor.execute(f"SELECT * FROM {table_name}") #print the DB
+    con.commit()
+    for row in data:
+        dataToGet.append(row)
+        #print(row)
     return dataToGet
 
 def CreatePopUpDB(con):
-    with con: #Change it to: id INTEGER, tick TEXT, price FLOAT, volume INTEGER
+    with con: 
         con.execute("""
             CREATE TABLE PopUps (
                 Tick TEXT,
@@ -87,21 +89,41 @@ def CreatePopUpDB(con):
 
 
 def InsertToPopUpDB(con, tick, popup_Reason, interval, started, InitPrice):
-    sql = 'INSERT INTO PopUps (Tick, PopUp_Reason, Intervals, Started,Init_Price) values(?, ?, ?, ?, ?)' #tick, price, volume
+    sql = 'INSERT INTO PopUps (Tick, PopUp_Reason, Intervals, Started,Init_Price) values(?, ?, ?, ?, ?)' 
     data = [
         #(1, 'Alice', 21,0),
         (tick, popup_Reason, interval, started, InitPrice)
     ]
     with con:
         con.executemany(sql, data)
+    con.commit()
+
+def InsertCurrentStartedPopUpDB(con, tick, popup_Reason, Date, InitPrice):
+    sql = 'INSERT INTO CurrentPopUpStarted (Tick, PopUpReason, DateOfStart, Price) values(?, ?, ?, ?)' 
+    data = [(tick, popup_Reason, Date, InitPrice)]
+    with con:
+        con.executemany(sql, data)
+    con.commit()
+
+def UpdatePopUpsDBStarted(con, Tick, Started, Price):
+    sql = """Update PopUps SET Started = ?, Init_Price = ?  WHERE Tick = ? """
+    data = (Started, Price, Tick)
+    cursor = con.cursor()
+    cursor.execute(sql, data)
+    con.commit()
 
 
 def add_column(con, table_name, column_name, column_type):
     cursor = con.cursor()
     cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
     con.commit()
-    con.close()
+    #con.close()
 
+def DeletFromDBByTicker(con,table_name,  ticker):
+    cursor = con.cursor()
+    cursor.execute(f"DELETE FROM {table_name} WHERE Tick = ?", (ticker,))
+    con.commit()
+    #con.close()
 
 con = connectToSqlite()
 #c = QueryDB(con)

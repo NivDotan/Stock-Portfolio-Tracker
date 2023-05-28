@@ -3,12 +3,14 @@ from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderV
 from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt, QTimer
 import concurrent.futures
 import time
-from GetStockPrice import stockprice_by_google
+from GetStockPrice import stockprice_by_google, stock_rsi_after_47
 import Stocks_DB
 from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow
 import SearchWindow
 import sys
 import qdarkstyle
+import yfinance as yf
+import datetime
 
 
 
@@ -85,6 +87,13 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         # Set the update interval to 1 minute (60000 milliseconds)
         update_interval = 60000
         self.update_timer.start(update_interval)
+
+        self.update_timer30MIn = QTimer()
+        self.update_timer30MIn.timeout.connect(self.CheckTimeAndCheckPopUps)
+
+        # Set the update interval to 30 minute (300000 milliseconds)
+        update_interval30Min = 30000
+        self.update_timer30MIn.start(update_interval30Min)
 
         self.show()
         
@@ -286,10 +295,81 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         today = time.strftime("%d/%m/%y")
         return today
 
+    def CheckTimeAndCheckPopUps(self):
+        current_time = time.localtime()
+        if current_time.tm_hour >= 17: #It will change to > 17
+            
+            try:
+                con = Stocks_DB.connectToSqlite()
+                tmpPopUpDB = Stocks_DB.QueryDBVar(con,"PopUps")
+                for i in tmpPopUpDB:
+                    if i[1] == 'RSI Below 35':
+                        if i[3] == 0:
+                            ticker = i[0]
+                            TickerPrice = i[4]
+                            stock_data = yf.download(ticker, period="3mo")
+                            closing_prices = stock_data['Close'].tolist()
+                            # Calculate RSI
+                            RSIstock = stock_rsi_after_47(ticker, closing_prices)[0]
+                            # Print the result
+                            print("RSIstock: ", RSIstock)
+                            if RSIstock < 95:#will changed to 36
+                                con = Stocks_DB.connectToSqlite()
+                                Text = "The Stock " + str(ticker) + " is at RSI " + str(RSIstock)
+                                self.popupWindow(Text)
+                                Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 1, stockprice_by_google(ticker)[1])
+                                current_time = time.strftime("%d/%m/%Y", time.localtime())
+                                Stocks_DB.InsertCurrentStartedPopUpDB(con, ticker, "1.1%", str(current_time), stockprice_by_google(ticker)[1])
+            except:
+                print("The PopUps DB is empty")
+ 
+            try:
+                con = Stocks_DB.connectToSqlite()
+                tmpCurrentStartedPopUpDB = Stocks_DB.QueryDBVar(con,"CurrentPopUpStarted")
+                for i in tmpCurrentStartedPopUpDB:
+                    ticker = i[0]
+                    PopUpReason = i[1]
+                    DateOfStart = i[2]
+                    TickerPrice = i[3]
+                    days_to_add = 21
+                    currentPrice = stockprice_by_google(ticker)[1]
+
+                    date_object = datetime.datetime.strptime(DateOfStart, "%d/%m/%Y").date()
+                    new_date = date_object + datetime.timedelta(days=days_to_add)
+                    
+                    if date_object > new_date:
+                        Text = "The Stock " + str(ticker) + " didn't reached it target in  " + str(days_to_add) + " days"
+                        self.popupWindow(Text)
+
+                    if (float(currentPrice) >= float(TickerPrice)*1.1):
+                        Text = "The Stock " + str(ticker) + " Have reached Target Price"
+                        self.popupWindow(Text)
+                        Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 0, stockprice_by_google(ticker)[1])
+                        Stocks_DB.DeletFromDBByTicker(con, "CurrentPopUpStarted", str(ticker))
+            except:
+                print("The CurrentPopUpStarted DB is empty")
+
+
+
+    def popupWindow(self, Text):
+        popup = QMessageBox()
+        # Set the window title and message
+        popup.setWindowTitle("Alert Window")
+        popup.setText(Text)
+        # Set the icon (optional)
+        popup.setIcon(QMessageBox.Information)
+        popup.setWindowModality(Qt.ApplicationModal)
+        popup.raise_()
+        # Add buttons to the popup (optional)
+        popup.addButton(QMessageBox.Ok)
+        popup.addButton(QMessageBox.Cancel)
+        # Execute the popup window
+        popup.exec_()
+
+
     def UpdatePrices(self):
-        
-        print("updating")
         global tickers, len_ticker
+        print("updating")
         tickers = []
         con = Stocks_DB.connectToSqlite()
         tickers = Stocks_DB.QueryDB(con)
@@ -298,8 +378,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
             stock_price_now = []
             StockInfo = []
             i = 0
-            j = 2
-            
+
             for tick in tickers:
                 stock_price_now.append(executor.submit(stockprice_by_google, tick[1]))
             for future in concurrent.futures.as_completed(stock_price_now):
@@ -314,12 +393,6 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
        
         my_dict = {sublist[0]: sublist[1:] for sublist in StockInfo}
-        #tmp = self.tableWidget.item(0, 0)
-        #print(my_dict)
-        #print("tmp ", tmp.text())
-        #value = my_dict.get(tmp.text())
-        #print(value)
-        print("my_dict ", my_dict)
         for i in range (self.tableWidget.rowCount()):
             tmpTickerName = self.tableWidget.item(i, 0)
             value = my_dict.get(tmpTickerName.text())
@@ -332,7 +405,9 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
             self.tableWidget.setItem(i, 4, QtWidgets.QTableWidgetItem(price))
             self.tableWidget.setItem(i, 5, QtWidgets.QTableWidgetItem(ROI))
 
+    
         
+
 
     def openGraph(self):
         #self.w = Window()
