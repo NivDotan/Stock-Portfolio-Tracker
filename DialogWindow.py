@@ -264,8 +264,104 @@ class CreatePopUpWindow(QDialog):
             popup.exec_()
 
 
+
+class ManageAleartsWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Connect to the SQLite database
+        self.con = Stocks_DB.connectToSqlite()
+
+        # Set the table name
+        self.table_name = "PopUps"
+
+        # Set up the UI
+        self.setWindowTitle('Manage Alerts')
+
+        # Create a vertical layout to hold the labels and buttons
+        self.layout = QtWidgets.QGridLayout()
+
+        # Load and display the table data
+        self.load_table_data()
+
+        # Create a widget to hold the layout
+        widget = QtWidgets.QWidget()
+        widget.setLayout(self.layout)
         
-        
+        self.setCentralWidget(widget)
+
+
+    def load_table_data(self):
+        # Execute the SELECT query to retrieve data from the table
+        cursor = self.con.cursor()
+        cursor.execute(f"SELECT Tick, PopUp_Reason, Intervals, Started, Init_Price FROM {self.table_name}")
+        data = cursor.fetchall()
+
+        ticker_label = QtWidgets.QLabel('Ticker:')
+        pop_up_reason_label = QtWidgets.QLabel('Pop Up Reason:')
+        intervals_label = QtWidgets.QLabel('Intervals:')
+        currently_working_label = QtWidgets.QLabel('Currently Working:')
+        starting_price_label = QtWidgets.QLabel('Starting Price:')
+
+        self.layout.addWidget(ticker_label, 0, 0)
+        self.layout.addWidget(pop_up_reason_label, 0, 1)
+        self.layout.addWidget(intervals_label, 0, 2)
+        self.layout.addWidget(currently_working_label, 0, 3)
+        self.layout.addWidget(starting_price_label, 0, 4)
+
+        # Display the data in labels and buttons
+        for row_index, row in enumerate(data, 1):
+            
+            if str(row[3]) == '1':
+                currently_working_value_label = QtWidgets.QLabel("Yes")
+            else:
+                currently_working_value_label = QtWidgets.QLabel("No")
+            ticker_value_label = QtWidgets.QLabel(str(row[0]))
+            pop_up_reason_value_label = QtWidgets.QLabel(str(row[1]))
+            intervals_value_label = QtWidgets.QLabel(str(row[2]))
+            starting_price_value_label = QtWidgets.QLabel(str(row[4]))
+
+            # Create a button for each row
+            remove_button = QtWidgets.QPushButton('Remove')
+
+            # Set the button's object name to the ticker value for identification
+            remove_button.setObjectName(str(row[0]))
+
+            # Connect the button's clicked signal to the remove_row slot
+            remove_button.clicked.connect(self.remove_row)
+
+
+            self.layout.addWidget(ticker_value_label, row_index, 0)
+            self.layout.addWidget(pop_up_reason_value_label, row_index, 1)
+            self.layout.addWidget(intervals_value_label, row_index, 2)
+            self.layout.addWidget(currently_working_value_label, row_index, 3)
+            self.layout.addWidget(starting_price_value_label, row_index, 4)
+            self.layout.addWidget(remove_button, row_index, 5)
+
+            
+
+    def remove_row(self):
+        # Get the ticker value from the clicked button's object name
+        ticker = self.sender().objectName()
+
+        # Execute the DELETE query to remove the corresponding row from the database
+        cursor = self.con.cursor()
+        cursor.execute(f"DELETE FROM {self.table_name} WHERE Tick = ?", (ticker,))
+        self.con.commit()
+
+        # Clear the layout and reload the table data
+        while self.layout.count():
+            child = self.layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        self.load_table_data()
+
+    def closeEvent(self, event):
+        # Close the database connection when the window is closed
+        self.con.close()
+
+       
 
 
 

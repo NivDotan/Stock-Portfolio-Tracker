@@ -5,7 +5,7 @@ import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google, stock_rsi_after_47
 import Stocks_DB
-from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow
+from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow, ManageAleartsWindow
 import SearchWindow
 import sys
 import qdarkstyle
@@ -48,6 +48,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.PortfolioSummery.setSizePolicy(policy.Fixed, policy.Fixed)
         self.Vertical.addWidget(self.graphs)
         self.Vertical.addWidget(self.PopUpWind)
+        self.Vertical.addWidget(self.ManagePopUps)
         #self.Vertical.addWidget(self.pybutton)
         self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
@@ -167,7 +168,8 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.graphs.clicked.connect(self.openGraph)
         self.PopUpWind = QtWidgets.QPushButton('Create a Pop Up Window', self)
         self.PopUpWind.clicked.connect(self.OpenCreatePopUpWin)
-
+        self.ManagePopUps = QtWidgets.QPushButton('Manage the Alerts', self)
+        self.ManagePopUps.clicked.connect(self.OpenManagePopUp)
         
 
         i = 0
@@ -407,7 +409,10 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
     
         
-
+    def OpenManagePopUp(self):
+        self.w = ManageAleartsWindow()
+        self.w.show()
+        #pass
 
     def openGraph(self):
         #self.w = Window()
