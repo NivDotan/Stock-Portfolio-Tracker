@@ -361,9 +361,124 @@ class ManageAleartsWindow(QtWidgets.QMainWindow):
         # Close the database connection when the window is closed
         self.con.close()
 
-       
+
+
+class AlertHistory(QtWidgets.QMainWindow):
+    def __init__(self, stockTicker):
+        super().__init__()
+
+        # Set up the UI
+        self.setWindowTitle('Alert History')
+
+        # Create a vertical layout to hold the labels and buttons
+        self.layout = QtWidgets.QGridLayout()
+
+        # Load and display the table data
+        self.load_table_data(stockTicker)
+
+        # Create a widget to hold the layout
+        widget = QtWidgets.QWidget()
+        widget.setLayout(self.layout)
+        self.setCentralWidget(widget)
+
+
+    def load_table_data(self, stockTicker):
+        # Execute the SELECT query to retrieve data from the table
+        con = Stocks_DB.connectToSqlite()
+        data = Stocks_DB.QueryStockFromDB(con, "History35RSI", stockTicker)
+
+        ticker_label = QtWidgets.QLabel('Ticker')
+        starting_price_label = QtWidgets.QLabel('Starting Price')
+        starting_date_label = QtWidgets.QLabel('Starting Date')
+        finish_price_label = QtWidgets.QLabel('Finish Price')
+        finish_date_label = QtWidgets.QLabel('Finish Date')
+        succeed_label = QtWidgets.QLabel('Succeed')
+
+        self.layout.addWidget(ticker_label, 0, 0)
+        self.layout.addWidget(starting_price_label, 0, 1)
+        self.layout.addWidget(starting_date_label, 0, 2)
+        self.layout.addWidget(finish_price_label, 0, 3)
+        self.layout.addWidget(finish_date_label, 0, 4)
+        self.layout.addWidget(succeed_label, 0, 5)
+
+        # Display the data in labels and buttons
+        for row_index, row in enumerate(data, 1):
+            
+            if str(row[4]) == '1':
+                currently_working_value_label = QtWidgets.QLabel("Yes")
+            else:
+                currently_working_value_label = QtWidgets.QLabel("No")
+            starting_price_label = QtWidgets.QLabel(str(row[0]))
+            starting_date_label = QtWidgets.QLabel(str(row[1]))
+            finish_price_label = QtWidgets.QLabel(str(row[2]))
+            finish_date_label = QtWidgets.QLabel(str(row[3]))
+            ticker_label = QtWidgets.QLabel(str(row[5]))
+
+
+            self.layout.addWidget(ticker_label, row_index, 0)
+            self.layout.addWidget(starting_price_label, row_index, 1)
+            self.layout.addWidget(starting_date_label, row_index, 2)
+            self.layout.addWidget(finish_price_label, row_index, 3)
+            self.layout.addWidget(finish_date_label, row_index, 4)
+            self.layout.addWidget(currently_working_value_label, row_index, 5)
+ 
 
 
 
+class ChooseAStockHistroy(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Choose Stock Histroy")
+        
+        # Create combo boxes
+        self.stockComboBox = QtWidgets.QComboBox()
 
+        # Create push button
+        self.pushButton = QtWidgets.QPushButton("Show")
+        self.pushButton.clicked.connect(self.handleButtonClick)
+
+        # Create layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Choose Stock:"))
+
+        con = Stocks_DB.connectToSqlite()
+        Tickers = Stocks_DB.QueryDBVar(con,"History35RSI")
+        tmpArr = []
+        for i in Tickers:
+            tmpArr.append(str(i[5]))
+        self.stockComboBox.addItems(tmpArr)
+
+        layout.addWidget(self.stockComboBox)
+        #layout.addWidget(QtWidgets.QLabel("Choose Alert:"))
+        #layout.addWidget(self.alertComboBox)
+        layout.addWidget(self.pushButton)
+
+        self.setLayout(layout)
+        self.show
+
+
+    #def populateAlertComboBox(self, index):
+    #    # Clear the alert combo box
+    #    self.alertComboBox.clear()
+    #    con = Stocks_DB.connectToSqlite()
+
+    #    # Get the selected stock from the first combo box
+    #    selectedStock = str(self.stockComboBox.currentText())
+    #    TmpAlerts = Stocks_DB.QueryStockFromDB(con,"History35RSI",selectedStock)
+    #    tmpArr = []
+    #    for i in TmpAlerts:
+    #        tmpArr.append(str(i[6]))
+    #        
+    #    self.alertComboBox.addItems(tmpArr)
+        central_widget = QtWidgets.QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+
+    def handleButtonClick(self):
+        global stockWindow
+        selectedStock = self.stockComboBox.currentText() 
+        stockWindow = AlertHistory(selectedStock)
+        stockWindow.show()
+        
 

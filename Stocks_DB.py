@@ -126,9 +126,9 @@ def DeletFromDBByTicker(con,table_name,  ticker):
     #con.close()
 
 
-def InsertHistoryRSI35DB(con, tick, CurrentPrice, CurrentDate):
-    sql = 'INSERT INTO History35RSI (Tick, Starting_Price, Starting_Date) values(?, ?, ?)' 
-    data = [(tick, CurrentPrice, CurrentDate)]
+def InsertHistoryRSI35DB(con, tick, CurrentPrice, CurrentDate, RSIType):
+    sql = 'INSERT INTO History35RSI (Tick, Starting_Price, Starting_Date, Alert_Type) values(?, ?, ?, ?)' 
+    data = [(tick, CurrentPrice, CurrentDate, RSIType)]
     with con:
         con.executemany(sql, data)
     con.commit()
@@ -139,6 +139,16 @@ def UpdateHistoryRSI35DB(con, tick, CurrentPrice, CurrentDate, DidItSucced):
     cursor = con.cursor()
     cursor.execute(sql, data)
     con.commit()
+
+
+def QueryStockFromDB(con, table_name, ticker):
+    dataToGet = []
+    cursor = con.cursor()
+    data = cursor.execute(f"SELECT * FROM {table_name}  WHERE Tick = ?", (ticker,)) 
+    con.commit()
+    for row in data:
+        dataToGet.append(row)
+    return dataToGet
 
 con = connectToSqlite()
 #c = QueryDB(con)

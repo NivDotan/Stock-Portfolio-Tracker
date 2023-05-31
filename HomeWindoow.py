@@ -5,7 +5,7 @@ import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google, stock_rsi_after_47
 import Stocks_DB
-from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow, ManageAleartsWindow
+from DialogWindow import InputDialog, DeletStockDialog, GraphsDialog, CreatePopUpWindow, ManageAleartsWindow, ChooseAStockHistroy
 import SearchWindow
 import sys
 import qdarkstyle
@@ -62,11 +62,15 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
         self.menubar = QtWidgets.QMenuBar(self)
         # Create a File menu
-        self.file_menu = QMenu("File")
-        self.file_menu.addAction('Hello', lambda: print("hello"))
+        self.file_menu = QMenu("Alerts")
+        self.file_menu.addAction('Create new alert', self.OpenCreatePopUpWin)
+        self.file_menu.addAction('Manage the alerts',self.OpenManagePopUp)
+        self.file_menu.addAction('History of success of an alert', self.OpenChooseStockAleartHIstory)
         self.menubar.addMenu(self.file_menu)
+        
 
         self.layout.setMenuBar(self.menubar)
+        self.menubar.setFixedWidth(45)
 
 
         #Solve the problem for the blank space in the tableWidget
@@ -331,7 +335,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
                                 Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 1, stockprice_by_google(ticker)[1])
                                 current_time = time.strftime("%d/%m/%Y", time.localtime())
                                 Stocks_DB.InsertCurrentStartedPopUpDB(con, ticker, "1.1%", str(current_time), stockprice_by_google(ticker)[1])
-                                Stocks_DB.InsertHistoryRSI35DB(con, ticker, stockprice_by_google(ticker)[1], str(current_time))
+                                Stocks_DB.InsertHistoryRSI35DB(con, ticker, stockprice_by_google(ticker)[1], str(current_time), "RSI 35")
             except:
                 print("The PopUps DB is empty")
  
@@ -426,7 +430,10 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
     def OpenManagePopUp(self):
         self.w = ManageAleartsWindow()
         self.w.show()
-        #pass
+    
+    def OpenChooseStockAleartHIstory(self):
+        self.w = ChooseAStockHistroy()
+        self.w.show()
 
     def openGraph(self):
         #self.w = Window()
