@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderView
+from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderView, QMenu, QAction
 from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt, QTimer
 import concurrent.futures
 import time
@@ -59,6 +59,15 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.line.setAlignment(Qt.AlignCenter)
         self.Vertical.addWidget(self.exit)
         self.layout.addLayout(self.Vertical, 0, 0)
+
+        self.menubar = QtWidgets.QMenuBar(self)
+        # Create a File menu
+        self.file_menu = QMenu("File")
+        self.file_menu.addAction('Hello', lambda: print("hello"))
+        self.menubar.addMenu(self.file_menu)
+
+        self.layout.setMenuBar(self.menubar)
+
 
         #Solve the problem for the blank space in the tableWidget
         horizontalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -315,13 +324,14 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
                             RSIstock = stock_rsi_after_47(ticker, closing_prices)[0]
                             # Print the result
                             print("RSIstock: ", RSIstock)
-                            if RSIstock < 95:#will changed to 36
+                            if RSIstock < 95: #will changed to 36
                                 con = Stocks_DB.connectToSqlite()
                                 Text = "The Stock " + str(ticker) + " is at RSI " + str(RSIstock)
                                 self.popupWindow(Text)
                                 Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 1, stockprice_by_google(ticker)[1])
                                 current_time = time.strftime("%d/%m/%Y", time.localtime())
                                 Stocks_DB.InsertCurrentStartedPopUpDB(con, ticker, "1.1%", str(current_time), stockprice_by_google(ticker)[1])
+                                Stocks_DB.InsertHistoryRSI35DB(con, ticker, stockprice_by_google(ticker)[1], str(current_time))
             except:
                 print("The PopUps DB is empty")
  
@@ -342,12 +352,16 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
                     if date_object > new_date:
                         Text = "The Stock " + str(ticker) + " didn't reached it target in  " + str(days_to_add) + " days"
                         self.popupWindow(Text)
+                        Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 0, stockprice_by_google(ticker)[1])
+                        Stocks_DB.DeletFromDBByTicker(con, "CurrentPopUpStarted", str(ticker))
+                        Stocks_DB.UpdateHistoryRSI35DB(con, ticker, stockprice_by_google(ticker)[1], str(current_time),0)
 
-                    if (float(currentPrice) >= float(TickerPrice)*1.1):
+                    elif (float(currentPrice) >= float(TickerPrice)*1.1):
                         Text = "The Stock " + str(ticker) + " Have reached Target Price"
                         self.popupWindow(Text)
                         Stocks_DB.UpdatePopUpsDBStarted(con, ticker, 0, stockprice_by_google(ticker)[1])
                         Stocks_DB.DeletFromDBByTicker(con, "CurrentPopUpStarted", str(ticker))
+                        Stocks_DB.UpdateHistoryRSI35DB(con, ticker, stockprice_by_google(ticker)[1], str(current_time),1)
             except:
                 print("The CurrentPopUpStarted DB is empty")
 
