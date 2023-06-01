@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QFrame, QDialog, QMessageBox, QApplication, QHeaderView, QMenu, QAction
-from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt, QTimer
+from PyQt5.QtCore import pyqtSignal, QFile, QTextStream, Qt, QTimer, QTime
 import concurrent.futures
 import time
 from GetStockPrice import stockprice_by_google, stock_rsi_after_47
@@ -47,8 +47,8 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         self.Vertical.addWidget(self.PortfolioSummery)
         self.PortfolioSummery.setSizePolicy(policy.Fixed, policy.Fixed)
         self.Vertical.addWidget(self.graphs)
-        self.Vertical.addWidget(self.PopUpWind)
-        self.Vertical.addWidget(self.ManagePopUps)
+        #self.Vertical.addWidget(self.PopUpWind)
+        #self.Vertical.addWidget(self.ManagePopUps)
         #self.Vertical.addWidget(self.pybutton)
         self.Vertical.addWidget(self.delete)
         self.Vertical.addWidget(self.add)
@@ -95,19 +95,46 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
 
 
 
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.UpdatePrices)
+        self.update_timerPrices = QTimer()
+        self.update_timerPrices.timeout.connect(self.UpdatePrices)
 
-        # Set the update interval to 1 minute (60000 milliseconds)
-        update_interval = 60000
-        self.update_timer.start(update_interval)
+        # Set the update interval to 5 minute (300000 milliseconds)
+        update_interval = 300000
+        self.update_timerPrices.start(update_interval)
+        
+        ###################################################################################
+        #self.update_timer30MIn = QTimer()
+        #self.update_timer30MIn.timeout.connect(self.CheckTimeAndCheckPopUps)
 
-        self.update_timer30MIn = QTimer()
-        self.update_timer30MIn.timeout.connect(self.CheckTimeAndCheckPopUps)
+        ###################################################################################
+        self.CheckAlert30Min = QTimer()
+        self.CheckAlert30Min.timeout.connect(lambda: self.CheckTimeAndCheckPopUps("30Min"))
+        update_interval = 1800000
+        self.CheckAlert30Min.start(update_interval)
 
-        # Set the update interval to 30 minute (300000 milliseconds)
-        update_interval30Min = 30000
-        self.update_timer30MIn.start(update_interval30Min)
+        self.CheckAlert1H = QTimer()
+        self.CheckAlert1H.timeout.connect(lambda: self.CheckTimeAndCheckPopUps("1H"))
+        update_interval = 1800000*2
+        self.CheckAlert1H.start(update_interval)
+
+        self.CheckAlert4H = QTimer()
+        self.CheckAlert4H.timeout.connect(lambda: self.CheckTimeAndCheckPopUps("4H"))
+        update_interval = 1800000*2*4
+        self.CheckAlert4H.start(update_interval)
+
+
+        self.check_timer1D = QTimer()
+        self.check_timer1D.timeout.connect(lambda: self.CheckTimeAndCheckPopUps("1D"))
+        current_time = QTime.currentTime()
+        # Set the time when you want to call the method (in this case, after 8 PM)
+        target_time = QTime(20, 0) 
+        # Calculate the number of milliseconds until the target time
+        time_difference = current_time.msecsTo(target_time)
+        if time_difference < 0:
+            time_difference += 24 * 60 * 60 * 1000  # 24 hours in milliseconds
+        self.check_timer1D.start(time_difference)
+
+
 
         self.show()
         
@@ -179,10 +206,10 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #self.add.clicked.connect(self.AddNewStock)
         self.graphs = QtWidgets.QPushButton('Daily Indexes', self)
         self.graphs.clicked.connect(self.openGraph)
-        self.PopUpWind = QtWidgets.QPushButton('Create a Pop Up Window', self)
-        self.PopUpWind.clicked.connect(self.OpenCreatePopUpWin)
-        self.ManagePopUps = QtWidgets.QPushButton('Manage the Alerts', self)
-        self.ManagePopUps.clicked.connect(self.OpenManagePopUp)
+        #self.PopUpWind = QtWidgets.QPushButton('Create a Pop Up Window', self)
+        #self.PopUpWind.clicked.connect(self.OpenCreatePopUpWin)
+        #self.ManagePopUps = QtWidgets.QPushButton('Manage the Alerts', self)
+        #self.ManagePopUps.clicked.connect(self.OpenManagePopUp)
         
 
         i = 0
@@ -310,15 +337,14 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         today = time.strftime("%d/%m/%y")
         return today
 
-    def CheckTimeAndCheckPopUps(self):
+    def CheckTimeAndCheckPopUps(self, interval):
         current_time = time.localtime()
         if current_time.tm_hour >= 17: #It will change to > 17
-            
             try:
                 con = Stocks_DB.connectToSqlite()
                 tmpPopUpDB = Stocks_DB.QueryDBVar(con,"PopUps")
                 for i in tmpPopUpDB:
-                    if i[1] == 'RSI Below 35':
+                    if i[1] == 'RSI Below 35' and i[2] == interval:
                         if i[3] == 0:
                             ticker = i[0]
                             TickerPrice = i[4]
@@ -328,7 +354,7 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
                             RSIstock = stock_rsi_after_47(ticker, closing_prices)[0]
                             # Print the result
                             print("RSIstock: ", RSIstock)
-                            if RSIstock < 95: #will changed to 36
+                            if RSIstock < 36: #will changed to 36
                                 con = Stocks_DB.connectToSqlite()
                                 Text = "The Stock " + str(ticker) + " is at RSI " + str(RSIstock)
                                 self.popupWindow(Text)
@@ -449,8 +475,12 @@ class HomeWindoowClass(QtWidgets.QMainWindow):
         #global stock
         #stock = str(self.line.text())
         #self._Global_Stock = (str(self.line.text()))
-        CreateAGlobalStock(str(self.line.text()))
-        self.w = SearchWindow.Window2()
+        tmp = stockprice_by_google(str(self.line.text()))
+        if tmp is None:
+            self.popupWindow("The stock don't exist, Please try again.")
+        else:
+            CreateAGlobalStock(str(self.line.text()))
+            self.w = SearchWindow.Window2()
 
     def NewWindowTable(self, x):
         global stock
