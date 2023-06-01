@@ -423,8 +423,6 @@ class AlertHistory(QtWidgets.QMainWindow):
             self.layout.addWidget(currently_working_value_label, row_index, 5)
  
 
-
-
 class ChooseAStockHistroy(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()

@@ -72,7 +72,7 @@ class Window2(QtWidgets.QMainWindow):
         Stock = str(self._Stock)
         StockTIck = yf.Ticker(str(Stock))
         info = StockTIck.info
-
+        
         stockPrice = stockprice_by_google(Stock)
         # self.pr_stock = QtWidgets.QLabel(self)
         text = stockPrice[1] + '$'
@@ -91,13 +91,13 @@ class Window2(QtWidgets.QMainWindow):
         self.textTick.setText(text)
         self.textTick.setFont(QtGui.QFont('Arial', 16, weight=QtGui.QFont.Bold))
         self.textTick.setAlignment(QtCore.Qt.AlignLeft)
-
+        
         self.Labels(info)
         self.Graphs(Stock)
         self.Buttons()
 
     def Labels(self,info):
-        options = ['sector', 'industry', 'dividendRate', 'marketCap', 'trailingPE', 'pegRatio', 'trailingEps',
+        options = ['sector', 'industry','trailingAnnualDividendRate', 'marketCap', 'trailingPE', 'pegRatio', 'trailingEps',
                    'bookValue']
         texts = ['Sector', 'Industry', 'Dividends', 'Market Cap', 'Trailing P/E', 'PEG Ratio', 'Eps', 'Price/Book']
         i = 0
@@ -109,7 +109,8 @@ class Window2(QtWidgets.QMainWindow):
         self.horizental2.addWidget(frame)
         self.horizental1 = QtWidgets.QHBoxLayout()
         count = 0
-
+        
+        
         for option in options:
             self.option = QtWidgets.QLabel(self)
             if option == 'marketCap':
